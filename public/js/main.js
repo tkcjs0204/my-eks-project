@@ -273,23 +273,72 @@ function showAlert(type, message) {
 
 // 페이지 로드 시 인증 상태 확인
 document.addEventListener('DOMContentLoaded', () => {
+    // 인증 상태 확인
     checkAuthStatus();
-
-    // 이벤트 리스너 등록
-    const loginForm = document.getElementById('loginForm');
-    const signupForm = document.getElementById('signupForm');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
-    if (signupForm) {
-        signupForm.addEventListener('submit', handleRegister);
-    }
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
+    
+    // 메인 페이지 컨텐츠 로드
+    loadMainContent();
 });
+
+// 메인 페이지 컨텐츠 로드
+async function loadMainContent() {
+    try {
+        const mainContent = document.getElementById('mainContent');
+        if (!mainContent) return;
+        
+        // 메인 페이지 컨텐츠 HTML 생성
+        mainContent.innerHTML = `
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h1>Note4U에 오신 것을 환영합니다</h1>
+                        <p>당신의 지식을 공유하고 함께 성장하세요.</p>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">최근 블로그 포스트</h5>
+                                <div id="recent-posts"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">진행중인 프로젝트</h5>
+                                <div id="active-projects"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 최근 포스트와 프로젝트 로드
+        await Promise.all([
+            loadRecentPosts(),
+            loadActiveProjects()
+        ]);
+    } catch (error) {
+        console.error('메인 페이지 컨텐츠 로드 실패:', error);
+    }
+}
+
+// 메인 페이지 컨텐츠 표시
+function displayMainContent(data) {
+    const mainContent = document.getElementById('mainContent');
+    if (!mainContent) return;
+    
+    // 메인 페이지 컨텐츠 HTML 생성
+    mainContent.innerHTML = `
+        <div class="container">
+            <h1>Note4U에 오신 것을 환영합니다</h1>
+            <p>당신의 지식을 공유하고 함께 성장하세요.</p>
+        </div>
+    `;
+}
 
 // 게스트 UI 업데이트
 function updateUIForGuest() {
@@ -376,93 +425,103 @@ function updateUIForUser(user) {
     }
 }
 
-// 최근 블로그 포스트 로드
-async function loadRecentPosts() {
+// 활성 프로젝트 로드
+async function loadActiveProjects() {
     try {
-        const response = await fetch('/api/blog/posts');
+        const response = await fetch('/api/projects', {
+            headers: getAuthHeaders()
+        });
+        
         if (!response.ok) {
-            throw new Error('Failed to fetch posts');
+            throw new Error('프로젝트를 불러오는데 실패했습니다.');
         }
-        const posts = await response.json();
         
-        const recentPostsContainer = document.getElementById('recent-posts');
-        if (!recentPostsContainer) return;
+        const projects = await response.json();
+        const activeProjectsContainer = document.getElementById('active-projects');
         
-        recentPostsContainer.innerHTML = posts.slice(0, 3).map(post => `
+        if (projects.length === 0) {
+            activeProjectsContainer.innerHTML = '<div class="col-12"><div class="alert alert-info">진행중인 프로젝트가 없습니다.</div></div>';
+            return;
+        }
+
+        activeProjectsContainer.innerHTML = projects.slice(0, 3).map(project => `
             <div class="col-md-4 mb-4">
                 <div class="card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">${post.title}</h5>
-                        <p class="card-text text-muted">
-                            <small>
-                                <i class="fas fa-user"></i> ${post.author_name || '익명'} |
-                                <i class="fas fa-calendar"></i> ${new Date(post.created_at).toLocaleDateString()} |
-                                <i class="fas fa-heart"></i> ${post.like_count || 0} |
-                                <i class="fas fa-comment"></i> ${post.comment_count || 0}
+                        <h5 class="card-title">${project.title}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            작성자: ${project.author_name} | 
+                            작성일: ${new Date(project.created_at).toLocaleDateString()}
+                        </h6>
+                        <p class="card-text">${getPostPreview(project.description, 100)}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="/projects/${project.id}" class="btn btn-sm btn-outline-primary">자세히 보기</a>
+                            <small class="text-muted">
+                                <i class="fas fa-users me-1"></i>${project.member_count}
+                                <i class="fas fa-tasks ms-2 me-1"></i>${project.task_count}
                             </small>
-                        </p>
-                        <p class="card-text">${getPostPreview(post.content)}</p>
-                        <div class="tags">
-                            ${(post.tags ? JSON.parse(post.tags) : []).map(tag => 
-                                `<span class="badge bg-secondary me-1">${tag}</span>`
-                            ).join('')}
                         </div>
-                    </div>
-                    <div class="card-footer bg-transparent">
-                        <a href="/blog/${post.id}" class="btn btn-outline-primary btn-sm">자세히 보기</a>
                     </div>
                 </div>
             </div>
         `).join('');
     } catch (error) {
-        console.error('Error loading recent posts:', error);
+        console.error('Error:', error);
+        showAlert(error.message || '프로젝트를 불러오는데 실패했습니다.', 'danger');
     }
 }
 
-// 포스트 미리보기 생성
-function getPostPreview(content, maxLength = 150) {
-    const plainText = content.replace(/[#*`]/g, '');
-    if (plainText.length <= maxLength) return plainText;
-    return plainText.substring(0, maxLength) + '...';
-}
-
-// 진행중인 프로젝트 로드
-async function loadActiveProjects() {
+// 최근 블로그 포스트 로드
+async function loadRecentPosts() {
     try {
-        const response = await fetch('/project');
+        const response = await fetch('/api/blog/posts', {
+            headers: getAuthHeaders()
+        });
+        
         if (!response.ok) {
-            throw new Error('Failed to fetch projects');
+            throw new Error('최근 포스트를 불러오는데 실패했습니다.');
         }
-        const projects = await response.json();
         
-        const activeProjectsContainer = document.getElementById('active-projects');
-        if (!activeProjectsContainer) return;
+        const posts = await response.json();
+        const recentPostsContainer = document.getElementById('recent-posts');
         
-        activeProjectsContainer.innerHTML = projects
-            .filter(project => project.status === '진행중')
-            .slice(0, 3)
-            .map(project => `
-                <div class="card mb-3">
+        if (posts.length === 0) {
+            recentPostsContainer.innerHTML = '<div class="col-12"><div class="alert alert-info">아직 작성된 게시글이 없습니다.</div></div>';
+            return;
+        }
+
+        recentPostsContainer.innerHTML = posts.slice(0, 3).map(post => `
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">${project.title}</h5>
-                        <p class="card-text text-muted">
-                            <small>
-                                <i class="fas fa-user"></i> ${project.leader_name} |
-                                <i class="fas fa-users"></i> ${project.member_count}명
+                        <h5 class="card-title">${post.title}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            작성자: ${post.author_name} | 
+                            작성일: ${new Date(post.created_at).toLocaleDateString()}
+                        </h6>
+                        <p class="card-text">${getPostPreview(post.content, 100)}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="/blog/${post.id}" class="btn btn-sm btn-outline-primary">자세히 보기</a>
+                            <small class="text-muted">
+                                <i class="fas fa-heart me-1"></i>${post.like_count}
+                                <i class="fas fa-comment ms-2 me-1"></i>${post.comment_count}
                             </small>
-                        </p>
-                        <p class="card-text">${project.description}</p>
-                        ${project.github_url ? `
-                            <a href="${project.github_url}" target="_blank" class="btn btn-sm btn-outline-dark">
-                                <i class="fab fa-github"></i> GitHub
-                            </a>
-                        ` : ''}
+                        </div>
                     </div>
                 </div>
-            `).join('');
+            </div>
+        `).join('');
     } catch (error) {
-        console.error('Error loading active projects:', error);
+        console.error('Error:', error);
+        showAlert(error.message || '최근 포스트를 불러오는데 실패했습니다.', 'danger');
     }
+}
+
+// 게시글 미리보기 생성
+function getPostPreview(content, maxLength) {
+    if (!content) return '';
+    const plainText = content.replace(/<[^>]*>/g, '');
+    return plainText.length > maxLength ? plainText.substring(0, maxLength) + '...' : plainText;
 }
 
 // 페이지 로드 시 실행

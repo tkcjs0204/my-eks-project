@@ -1,59 +1,89 @@
 // 프로젝트 목록 로드
 async function loadProjects() {
     try {
-        const response = await fetch('/api/project');
+        const response = await fetch('/api/projects', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
         if (!response.ok) {
-            throw new Error('프로젝트를 불러오는데 실패했습니다.');
+            const errorData = await response.json();
+            throw new Error(errorData.message || '프로젝트를 불러오는데 실패했습니다.');
         }
         const projects = await response.json();
         displayProjects(projects);
     } catch (error) {
         console.error('Error:', error);
-        showError('프로젝트를 불러오는데 실패했습니다.');
+        showError(error.message || '프로젝트를 불러오는데 실패했습니다.');
     }
 }
 
 // 프로젝트 목록 표시
 function displayProjects(projects) {
-    const container = document.getElementById('project-list');
-    if (!container) return;
+    const projectsContainer = document.getElementById('projects');
+    if (!projectsContainer) return;
 
-    container.innerHTML = projects.map(project => `
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">${project.title}</h5>
-                    <p class="card-text">${project.description}</p>
+    projectsContainer.innerHTML = projects.map(project => {
+        const isLeader = project.leader_id === getCurrentUserId();
+        
+        return `
+            <div class="col-md-6">
+                <div class="project-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="project-title">${project.title}</h3>
+                        ${isLeader ? `
+                            <div class="btn-group">
+                                <button class="btn btn-outline-primary btn-sm" onclick="router.navigate('/project/${project.id}/edit')">
+                                    <i class="fas fa-edit"></i> 수정
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteProject(${project.id})">
+                                    <i class="fas fa-trash"></i> 삭제
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="project-meta">
+                        <span>리더: ${project.leader_name}</span>
+                        <span class="mx-2">|</span>
+                        <span>멤버: ${project.member_count}명</span>
+                    </div>
+                    <div class="project-description">
+                        ${project.description}
+                    </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <div class="text-muted">
-                            <small>${project.owner_name} • ${new Date(project.created_at).toLocaleDateString('ko-KR')}</small>
+                        <div class="project-tags">
+                            ${project.tags ? project.tags.split(',').map(tag => `
+                                <span class="tag">${tag.trim()}</span>
+                            `).join('') : ''}
                         </div>
-                        <div>
-                            <span class="badge bg-secondary">${project.member_count || 0} 멤버</span>
-                        </div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="router.navigate('/project/${project.id}')">
+                            자세히 보기
+                        </button>
                     </div>
                 </div>
-                <div class="card-footer">
-                    <a href="/project/${project.id}" class="btn btn-primary btn-sm" data-link>자세히 보기</a>
-                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // 프로젝트 상세 정보 로드
 async function loadProject(projectId) {
     try {
-        const response = await fetch(`/api/project/${projectId}`);
+        const response = await fetch(`/api/projects/${projectId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
         if (!response.ok) {
-            throw new Error('프로젝트를 불러오는데 실패했습니다.');
+            const errorData = await response.json();
+            throw new Error(errorData.message || '프로젝트를 불러오는데 실패했습니다.');
         }
         const project = await response.json();
         displayProject(project);
         loadProjectMembers(projectId);
     } catch (error) {
         console.error('Error:', error);
-        showError('프로젝트를 불러오는데 실패했습니다.');
+        showError(error.message || '프로젝트를 불러오는데 실패했습니다.');
     }
 }
 
@@ -108,15 +138,20 @@ function displayProject(project) {
 // 프로젝트 멤버 목록 로드
 async function loadProjectMembers(projectId) {
     try {
-        const response = await fetch(`/api/project/${projectId}/members`);
+        const response = await fetch(`/api/projects/${projectId}/members`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
         if (!response.ok) {
-            throw new Error('멤버 목록을 불러오는데 실패했습니다.');
+            const errorData = await response.json();
+            throw new Error(errorData.message || '멤버 목록을 불러오는데 실패했습니다.');
         }
         const members = await response.json();
         displayProjectMembers(members);
     } catch (error) {
         console.error('Error:', error);
-        showError('멤버 목록을 불러오는데 실패했습니다.');
+        showError(error.message || '멤버 목록을 불러오는데 실패했습니다.');
     }
 }
 
@@ -151,23 +186,25 @@ async function handleProjectSubmit(event) {
     };
     
     try {
-        const response = await fetch('/api/project', {
+        const response = await fetch('/api/projects', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
             body: JSON.stringify(projectData)
         });
         
         if (!response.ok) {
-            throw new Error('프로젝트 생성에 실패했습니다.');
+            const errorData = await response.json();
+            throw new Error(errorData.message || '프로젝트 생성에 실패했습니다.');
         }
         
         showSuccess('프로젝트가 생성되었습니다.');
-        router.navigate('/project');
+        router.navigate('/projects');
     } catch (error) {
         console.error('Error:', error);
-        showError('프로젝트 생성에 실패했습니다.');
+        showError(error.message || '프로젝트 생성에 실패했습니다.');
     }
 }
 
@@ -205,6 +242,33 @@ function showSuccess(message) {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     document.querySelector('.container').prepend(alertDiv);
+}
+
+// 프로젝트 삭제
+async function deleteProject(projectId) {
+    if (!confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/projects/${projectId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || '프로젝트 삭제에 실패했습니다.');
+        }
+
+        showAlert('프로젝트가 삭제되었습니다.', 'success');
+        router.navigate('/projects');
+    } catch (error) {
+        console.error('프로젝트 삭제 중 오류:', error);
+        showAlert(error.message || '프로젝트 삭제에 실패했습니다.', 'danger');
+    }
 }
 
 // 이벤트 리스너 등록

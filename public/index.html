@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Note4U - 당신의 지식을 공유하세요</title>
+    <title>Note4U - 지식 공유 플랫폼</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -23,41 +23,75 @@
 </head>
 <body>
     <!-- 알림 컨테이너 -->
-    <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050"></div>
+    <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1050"></div>
 
     <!-- 네비게이션 바 -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="/">Note4U</a>
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-book-reader me-2"></i>Note4U
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/">홈</a>
+                        <a class="nav-link" href="/blog">
+                            <i class="fas fa-blog me-1"></i>블로그
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/blog">블로그</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/project">프로젝트</a>
+                        <a class="nav-link" href="/projects">
+                            <i class="fas fa-project-diagram me-1"></i>프로젝트
+                        </a>
                     </li>
                 </ul>
-                <div class="d-flex align-items-center">
-                    <span id="userInfo" class="text-light me-3" style="display: none;"></span>
-                    <button id="loginBtn" class="btn btn-outline-light me-2" data-bs-toggle="modal" data-bs-target="#loginModal">로그인</button>
-                    <button id="signupBtn" class="btn btn-light me-2" data-bs-toggle="modal" data-bs-target="#signupModal">회원가입</button>
-                    <button id="logoutBtn" class="btn btn-outline-light" style="display: none;">로그아웃</button>
+                <div id="auth-buttons" class="d-flex gap-2">
+                    <!-- 로그인/회원가입 버튼이 여기에 동적으로 추가됩니다 -->
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- 메인 컨텐츠 -->
-    <main class="container my-4">
-        <!-- 동적 컨텐츠가 여기에 로드됩니다 -->
+    <main id="main-content" class="container-fluid py-4">
+        <!-- 컨텐츠가 여기에 동적으로 로드됩니다 -->
     </main>
+
+    <!-- 블로그 게시글 상세 템플릿 -->
+    <template id="blog-post-detail-template">
+        <div class="container">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="card-title"></h2>
+                        <div class="btn-group">
+                            <a href="/blog" class="btn btn-secondary">목록으로</a>
+                            <button class="btn btn-danger" onclick="deletePost(postId)">삭제</button>
+                        </div>
+                    </div>
+                    <p class="text-muted mb-4">
+                        작성자: <span class="author-name"></span> | 
+                        작성일: <span class="created-at"></span>
+                    </p>
+                    <div class="card-text mb-4 post-content"></div>
+                </div>
+            </div>
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h4 class="card-title">댓글</h4>
+                    <form id="comment-form" class="mb-4">
+                        <div class="mb-3">
+                            <textarea class="form-control" id="comment-content" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">댓글 작성</button>
+                    </form>
+                    <div id="comments"></div>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <!-- 로그인 모달 -->
     <div class="modal fade" id="loginModal" tabindex="-1">
@@ -70,12 +104,12 @@
                 <div class="modal-body">
                     <form id="loginForm">
                         <div class="mb-3">
-                            <label for="loginEmail" class="form-label">이메일</label>
-                            <input type="email" class="form-control" id="loginEmail" required>
+                            <label class="form-label">이메일</label>
+                            <input type="email" class="form-control" name="email" required>
                         </div>
                         <div class="mb-3">
-                            <label for="loginPassword" class="form-label">비밀번호</label>
-                            <input type="password" class="form-control" id="loginPassword" required>
+                            <label class="form-label">비밀번호</label>
+                            <input type="password" class="form-control" name="password" required>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">로그인</button>
                     </form>
@@ -85,7 +119,7 @@
     </div>
 
     <!-- 회원가입 모달 -->
-    <div class="modal fade" id="signupModal" tabindex="-1">
+    <div class="modal fade" id="registerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -93,18 +127,22 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="signupForm">
+                    <form id="registerForm">
                         <div class="mb-3">
-                            <label for="signupName" class="form-label">이름</label>
-                            <input type="text" class="form-control" id="signupName" required>
+                            <label class="form-label">이름</label>
+                            <input type="text" class="form-control" name="name" required>
                         </div>
                         <div class="mb-3">
-                            <label for="signupEmail" class="form-label">이메일</label>
-                            <input type="email" class="form-control" id="signupEmail" required>
+                            <label class="form-label">이메일</label>
+                            <input type="email" class="form-control" name="email" required>
                         </div>
                         <div class="mb-3">
-                            <label for="signupPassword" class="form-label">비밀번호</label>
-                            <input type="password" class="form-control" id="signupPassword" required>
+                            <label class="form-label">비밀번호</label>
+                            <input type="password" class="form-control" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">비밀번호 확인</label>
+                            <input type="password" class="form-control" name="confirmPassword" required>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">회원가입</button>
                     </form>
@@ -137,11 +175,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
     
-    <!-- Custom JavaScript -->
-    <script src="/js/main.js"></script>
-    <script src="/js/auth.js"></script>
-    <script src="/js/blog.js"></script>
-    <script src="/js/project.js"></script>
+    <!-- Custom Scripts -->
     <script src="/js/router.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        // 현재 경로에 따라 필요한 스크립트 로드
+        const path = window.location.pathname;
+        if (path.startsWith('/blog')) {
+            const script = document.createElement('script');
+            script.src = '/js/blog.js';
+            document.body.appendChild(script);
+        } else if (path.startsWith('/projects')) {
+            const script = document.createElement('script');
+            script.src = '/js/projects.js';
+            document.body.appendChild(script);
+        }
+    </script>
 </body>
 </html> 
