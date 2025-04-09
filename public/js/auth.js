@@ -89,47 +89,74 @@ function addAuthHeader(headers = {}) {
 }
 
 // 인증 상태 UI 업데이트
-function updateAuthUI(isAuthenticated, user) {
-    const loginBtn = document.getElementById('loginBtn');
-    const signupBtn = document.getElementById('signupBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const userInfo = document.getElementById('userInfo');
-
+function updateAuthUI(isAuthenticated, user = null) {
+    const authLinks = document.getElementById('auth-links');
+    if (!authLinks) return;
+    
     if (isAuthenticated && user) {
-        if (loginBtn) loginBtn.style.display = 'none';
-        if (signupBtn) signupBtn.style.display = 'none';
-        if (logoutBtn) logoutBtn.style.display = 'block';
-        if (userInfo) {
-            userInfo.style.display = 'block';
-            userInfo.textContent = `${user.name}님 환영합니다`;
+        let adminLink = '';
+        // 관리자인 경우 관리자 페이지 링크 추가
+        if (user.role === 'admin') {
+            adminLink = `
+                <li class="nav-item">
+                    <a class="nav-link" href="/admin">관리자 페이지</a>
+                </li>
+            `;
         }
+        
+        authLinks.innerHTML = `
+            <li class="nav-item">
+                <span class="nav-link">환영합니다, ${user.name}님!</span>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/profile">프로필</a>
+            </li>
+            ${adminLink}
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="logout()">로그아웃</a>
+            </li>
+        `;
     } else {
-        if (loginBtn) loginBtn.style.display = 'block';
-        if (signupBtn) signupBtn.style.display = 'block';
-        if (logoutBtn) logoutBtn.style.display = 'none';
-        if (userInfo) userInfo.style.display = 'none';
+        authLinks.innerHTML = `
+            <li class="nav-item">
+                <a class="nav-link" href="/login">로그인</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/register">회원가입</a>
+            </li>
+        `;
     }
 }
 
 // 인증 상태 확인
 async function checkAuthStatus() {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        updateAuthUI(false);
+        return false;
+    }
+    
     try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('/api/auth/status', {
+        const response = await fetch('/api/auth/me', {
             headers: {
-                'Authorization': token ? `Bearer ${token}` : ''
+                'Authorization': `Bearer ${token}`
             }
         });
-
+        
         if (!response.ok) {
-            throw new Error('인증 상태 확인에 실패했습니다.');
+            throw new Error('인증에 실패했습니다.');
         }
-
-        const data = await response.json();
-        updateAuthUI(data.isAuthenticated, data.user);
+        
+        const user = await response.json();
+        updateAuthUI(true, user);
+        return true;
     } catch (error) {
         console.error('Error:', error);
-        updateAuthUI(false, null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        updateAuthUI(false);
+        return false;
     }
 }
 
@@ -146,12 +173,11 @@ function showRegisterForm() {
 }
 
 // 로그인 처리
-document.getElementById('loginForm').addEventListener('submit', async (event) => {
+async function handleLogin(event) {
     event.preventDefault();
     
-    const formData = new FormData(event.target);
-    const email = formData.get('email');
-    const password = formData.get('password');
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
     
     try {
         const response = await fetch('/api/auth/login', {
@@ -162,36 +188,31 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
             body: JSON.stringify({ email, password })
         });
         
-        if (!response.ok) throw new Error('로그인에 실패했습니다.');
-        
         const data = await response.json();
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
         
-        // 모달 닫기
-        const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-        loginModal.hide();
-        
-        // UI 업데이트
-        updateAuthUI(true, data.user);
-        
-        showAlert('로그인되었습니다.', 'success');
-        router.navigate('/');
+        if (response.ok) {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            updateAuthUI(true, data.user);
+            window.router.navigate('/');
+            showAlert('로그인되었습니다.', 'success');
+        } else {
+            showAlert(data.message || '로그인에 실패했습니다.', 'danger');
+        }
     } catch (error) {
         console.error('Error:', error);
-        showAlert('로그인에 실패했습니다.', 'danger');
+        showAlert('로그인 중 오류가 발생했습니다.', 'danger');
     }
-});
+}
 
 // 회원가입 처리
-document.getElementById('registerForm').addEventListener('submit', async (event) => {
+async function handleRegister(event) {
     event.preventDefault();
     
-    const formData = new FormData(event.target);
-    const name = formData.get('name');
-    const email = formData.get('email');
-    const password = formData.get('password');
-    const confirmPassword = formData.get('confirmPassword');
+    const name = document.getElementById('name').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
     
     if (password !== confirmPassword) {
         showAlert('비밀번호가 일치하지 않습니다.', 'danger');
@@ -207,27 +228,25 @@ document.getElementById('registerForm').addEventListener('submit', async (event)
             body: JSON.stringify({ name, email, password })
         });
         
-        if (!response.ok) throw new Error('회원가입에 실패했습니다.');
-        
         const data = await response.json();
         
-        // 모달 닫기
-        const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
-        registerModal.hide();
-        
-        showAlert('회원가입이 완료되었습니다. 로그인해주세요.', 'success');
-        showLoginForm();
+        if (response.ok) {
+            showAlert('회원가입이 완료되었습니다. 로그인해주세요.', 'success');
+            window.router.navigate('/login');
+        } else {
+            showAlert(data.message || '회원가입에 실패했습니다.', 'danger');
+        }
     } catch (error) {
         console.error('Error:', error);
-        showAlert('회원가입에 실패했습니다.', 'danger');
+        showAlert('회원가입 중 오류가 발생했습니다.', 'danger');
     }
-});
+}
 
 // 로그아웃 처리
 function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    updateAuthUI(false, null);
+    updateAuthUI(false);
     showAlert('로그아웃되었습니다.', 'success');
     router.navigate('/');
 }
@@ -263,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 회원가입 폼 이벤트 리스너
     const signupForm = document.getElementById('signupForm');
     if (signupForm) {
-        signupForm.addEventListener('submit', handleSignup);
+        signupForm.addEventListener('submit', handleRegister);
     }
     
     // 로그아웃 버튼 이벤트 리스너
@@ -271,4 +290,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
     }
-}); 
+});
+
+// 현재 로그인한 사용자 정보 가져오기
+function getCurrentUser() {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return {
+            id: payload.id,
+            name: payload.name,
+            email: payload.email
+        };
+    } catch (error) {
+        console.error('Error parsing token:', error);
+        return null;
+    }
+}
+
+// 현재 로그인한 사용자 ID 가져오기
+function getCurrentUserId() {
+    const user = getCurrentUser();
+    return user ? user.id : null;
+} 

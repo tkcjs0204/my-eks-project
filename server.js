@@ -4,7 +4,9 @@ const path = require('path');
 const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { initializeDatabase } = require('./database');
+const { initializeDatabase, db } = require('./database');
+const { authenticateToken } = require('./middleware/authMiddleware');
+const Post = require('./models/post');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -49,8 +51,25 @@ app.use(cors({
 // 요청 제한 설정
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15분
-    max: 100 // IP당 최대 요청 수
+    max: 1000, // IP당 최대 요청 수 증가
+    message: { message: '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.' }
 });
+
+// API 경로별 rate limit 설정
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15분
+    max: 100, // 인증 요청 제한 증가
+    message: { message: '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.' }
+});
+
+const postLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15분
+    max: 200, // 게시글 작성 제한
+    message: { message: '너무 많은 게시글 작성 요청이 있었습니다. 잠시 후 다시 시도해주세요.' }
+});
+
+app.use('/api/auth', authLimiter);
+app.use('/api/blog/posts', postLimiter);
 app.use('/api/', limiter);
 
 // 압축 미들웨어
@@ -81,11 +100,81 @@ app.use(express.static(path.join(__dirname, 'public'), {
 const authRoutes = require('./routes/auth');
 const blogRoutes = require('./routes/blog');
 const projectRoutes = require('./routes/projects');
+const userRoutes = require('./routes/users');
+const adminRoutes = require('./routes/admin');
 
 // API 라우트 설정
 app.use('/api/auth', authRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
+
+// 블로그 게시글 삭제
+app.delete('/api/blog/posts/:id', async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ message: '인증이 필요합니다.' });
+        }
+
+        // 게시글 찾기
+        const post = await db.get('SELECT * FROM posts WHERE id = ?', [postId]);
+        if (!post) {
+            return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+        }
+
+        // 작성자 확인
+        if (post.author_id !== req.user.id) {
+            return res.status(403).json({ message: '게시글을 삭제할 권한이 없습니다.' });
+        }
+
+        // 게시글 삭제
+        await db.run('DELETE FROM posts WHERE id = ?', [postId]);
+        res.json({ message: '게시글이 삭제되었습니다.' });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
+
+// 블로그 게시글 수정
+app.put('/api/blog/posts/:id', async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const { title, content } = req.body;
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ message: '인증이 필요합니다.' });
+        }
+
+        // 게시글 찾기
+        const post = await db.get('SELECT * FROM posts WHERE id = ?', [postId]);
+        if (!post) {
+            return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+        }
+
+        // 작성자 확인
+        if (post.author_id !== req.user.id) {
+            return res.status(403).json({ message: '게시글을 수정할 권한이 없습니다.' });
+        }
+
+        // 게시글 수정
+        await db.run(
+            'UPDATE posts SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [title, content, postId]
+        );
+
+        const updatedPost = await db.get('SELECT * FROM posts WHERE id = ?', [postId]);
+        res.json({ message: '게시글이 수정되었습니다.', post: updatedPost });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+});
 
 // API 404 처리
 app.use('/api/*', (req, res) => {

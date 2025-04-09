@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
 class Database {
     constructor() {
@@ -18,7 +19,11 @@ class Database {
 
         return new Promise((resolve, reject) => {
             try {
-                this.db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) => {
+                // 데이터베이스 파일 경로
+                const dbPath = path.join(__dirname, 'database.sqlite');
+                
+                // 데이터베이스 연결
+                this.db = new sqlite3.Database(dbPath, (err) => {
                     if (err) {
                         console.error('데이터베이스 연결 오류:', err);
                         reject(err);
@@ -27,93 +32,26 @@ class Database {
 
                     console.log('데이터베이스가 연결되었습니다.');
 
-                    // 테이블 생성
-                    this.db.serialize(() => {
-                        // 사용자 테이블
-                        this.db.run(`
-                            CREATE TABLE IF NOT EXISTS users (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                name TEXT NOT NULL,
-                                email TEXT UNIQUE NOT NULL,
-                                password TEXT NOT NULL,
-                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                            )
-                        `);
-
-                        // 게시글 테이블
-                        this.db.run(`
-                            CREATE TABLE IF NOT EXISTS posts (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                title TEXT NOT NULL,
-                                content TEXT NOT NULL,
-                                author_id INTEGER NOT NULL,
-                                tags TEXT,
-                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                FOREIGN KEY (author_id) REFERENCES users (id)
-                            )
-                        `);
-
-                        // 댓글 테이블
-                        this.db.run(`
-                            CREATE TABLE IF NOT EXISTS comments (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                post_id INTEGER NOT NULL,
-                                author_id INTEGER NOT NULL,
-                                content TEXT NOT NULL,
-                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
-                                FOREIGN KEY (author_id) REFERENCES users (id)
-                            )
-                        `);
-
-                        // 좋아요 테이블
-                        this.db.run(`
-                            CREATE TABLE IF NOT EXISTS likes (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                post_id INTEGER NOT NULL,
-                                user_id INTEGER NOT NULL,
-                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
-                                FOREIGN KEY (user_id) REFERENCES users (id),
-                                UNIQUE(post_id, user_id)
-                            )
-                        `);
-
-                        // 프로젝트 테이블
-                        this.db.run(`
-                            CREATE TABLE IF NOT EXISTS projects (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                title TEXT NOT NULL,
-                                description TEXT NOT NULL,
-                                author_id INTEGER NOT NULL,
-                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                FOREIGN KEY (author_id) REFERENCES users (id)
-                            )
-                        `);
-
-                        // 프로젝트 댓글 테이블
-                        this.db.run(`DROP TABLE IF EXISTS project_comments`);
-                        this.db.run(`
-                            CREATE TABLE IF NOT EXISTS project_comments (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                project_id INTEGER NOT NULL,
-                                author_id INTEGER NOT NULL,
-                                content TEXT NOT NULL,
-                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
-                                FOREIGN KEY (author_id) REFERENCES users (id)
-                            )
-                        `);
-
-                        // 외래 키 제약 조건 활성화
-                        this.db.run('PRAGMA foreign_keys = ON');
+                    // 외래 키 제약 조건 활성화
+                    this.db.run('PRAGMA foreign_keys = ON', (err) => {
+                        if (err) {
+                            console.error('외래 키 제약 조건 활성화 오류:', err);
+                            reject(err);
+                            return;
+                        }
+                        
+                        // 테이블 생성
+                        this.createTables()
+                            .then(() => {
+                                this.isInitialized = true;
+                                console.log('데이터베이스가 초기화되었습니다.');
+                                resolve();
+                            })
+                            .catch(err => {
+                                console.error('테이블 생성 오류:', err);
+                                reject(err);
+                            });
                     });
-
-                    this.isInitialized = true;
-                    console.log('데이터베이스가 초기화되었습니다.');
-                    resolve();
                 });
             } catch (error) {
                 console.error('데이터베이스 초기화 오류:', error);
@@ -122,10 +60,88 @@ class Database {
         });
     }
 
+    async createTables() {
+        return new Promise((resolve, reject) => {
+            this.db.serialize(() => {
+                // 사용자 테이블
+                this.db.run(`
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT UNIQUE NOT NULL,
+                        email TEXT UNIQUE NOT NULL,
+                        password TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        bio TEXT,
+                        role TEXT DEFAULT 'user',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+
+                // 블로그 게시글 테이블
+                this.db.run(`
+                    CREATE TABLE IF NOT EXISTS blog_posts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        title TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        author_id INTEGER NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (author_id) REFERENCES users (id) ON DELETE CASCADE
+                    )
+                `);
+
+                // 게시글 좋아요 테이블
+                this.db.run(`
+                    CREATE TABLE IF NOT EXISTS post_likes (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        post_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (post_id) REFERENCES blog_posts (id) ON DELETE CASCADE,
+                        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                        UNIQUE(post_id, user_id)
+                    )
+                `);
+
+                // 댓글 테이블
+                this.db.run(`
+                    CREATE TABLE IF NOT EXISTS comments (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        post_id INTEGER NOT NULL,
+                        author_id INTEGER NOT NULL,
+                        content TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (post_id) REFERENCES blog_posts (id) ON DELETE CASCADE,
+                        FOREIGN KEY (author_id) REFERENCES users (id) ON DELETE CASCADE
+                    )
+                `);
+
+                // 게시글 태그 테이블
+                this.db.run(`
+                    CREATE TABLE IF NOT EXISTS post_tags (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        post_id INTEGER NOT NULL,
+                        tag_name TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (post_id) REFERENCES blog_posts (id) ON DELETE CASCADE,
+                        UNIQUE(post_id, tag_name)
+                    )
+                `, (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+        });
+    }
+
     // Promise 기반 데이터베이스 메서드
     async run(sql, params = []) {
         if (!this.isInitialized) {
-            throw new Error('데이터베이스가 초기화되지 않았습니다.');
+            await this.initialize();
         }
         return new Promise((resolve, reject) => {
             this.db.run(sql, params, function(err) {
@@ -137,7 +153,7 @@ class Database {
     
     async get(sql, params = []) {
         if (!this.isInitialized) {
-            throw new Error('데이터베이스가 초기화되지 않았습니다.');
+            await this.initialize();
         }
         return new Promise((resolve, reject) => {
             this.db.get(sql, params, (err, row) => {
@@ -149,7 +165,7 @@ class Database {
     
     async all(sql, params = []) {
         if (!this.isInitialized) {
-            throw new Error('데이터베이스가 초기화되지 않았습니다.');
+            await this.initialize();
         }
         return new Promise((resolve, reject) => {
             this.db.all(sql, params, (err, rows) => {
@@ -159,16 +175,44 @@ class Database {
         });
     }
 
-    close() {
-        if (this.db) {
-            this.db.close();
+    async close() {
+        return new Promise((resolve, reject) => {
+            if (this.db) {
+                this.db.close((err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            } else {
+                resolve();
+            }
+        });
+    }
+
+    // 데이터베이스 재설정 (모든 데이터 삭제)
+    async reset() {
+        try {
+            await this.close();
+            
+            const dbPath = path.join(__dirname, 'database.sqlite');
+            if (fs.existsSync(dbPath)) {
+                fs.unlinkSync(dbPath);
+                console.log('기존 데이터베이스 파일이 삭제되었습니다.');
+            }
+            
             this.isInitialized = false;
+            await this.initialize();
+            console.log('데이터베이스가 재설정되었습니다.');
+        } catch (error) {
+            console.error('데이터베이스 재설정 오류:', error);
+            throw error;
         }
     }
 }
 
 const database = new Database();
+
 module.exports = {
     initializeDatabase: () => database.initialize(),
+    resetDatabase: () => database.reset(),
     db: database
 }; 

@@ -55,43 +55,79 @@
     </nav>
 
     <!-- 메인 컨텐츠 -->
-    <main id="main-content" class="container-fluid py-4">
+    <main id="main-content" class="container py-4">
         <!-- 컨텐츠가 여기에 동적으로 로드됩니다 -->
     </main>
 
-    <!-- 블로그 게시글 상세 템플릿 -->
-    <template id="blog-post-detail-template">
-        <div class="container">
+    <!-- 블로그 게시글 상세 페이지 -->
+    <div id="blog-post-detail" style="display: none;">
+        <div class="container mt-4">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h2 class="card-title"></h2>
+                        <h2 class="card-title" id="post-title"></h2>
                         <div class="btn-group">
                             <a href="/blog" class="btn btn-secondary">목록으로</a>
-                            <button class="btn btn-danger" onclick="deletePost(postId)">삭제</button>
+                            <button class="btn btn-primary" id="edit-post-btn">수정</button>
+                            <button class="btn btn-danger" id="delete-post-btn">삭제</button>
                         </div>
                     </div>
                     <p class="text-muted mb-4">
-                        작성자: <span class="author-name"></span> | 
-                        작성일: <span class="created-at"></span>
+                        작성자: <span id="post-author"></span> | 
+                        작성일: <span id="post-date"></span>
                     </p>
-                    <div class="card-text mb-4 post-content"></div>
-                </div>
-            </div>
-            <div class="card mt-4">
-                <div class="card-body">
-                    <h4 class="card-title">댓글</h4>
-                    <form id="comment-form" class="mb-4">
-                        <div class="mb-3">
-                            <textarea class="form-control" id="comment-content" rows="3" required></textarea>
+                    <div class="card-text mb-4" id="post-content"></div>
+                    
+                    <!-- 좋아요 버튼 -->
+                    <div class="d-flex align-items-center gap-2 mb-4">
+                        <button class="btn btn-outline-primary" id="like-button">
+                            <i class="fas fa-heart"></i>
+                            좋아요 <span id="like-count">0</span>
+                        </button>
+                    </div>
+
+                    <!-- 댓글 섹션 -->
+                    <div class="mt-4">
+                        <h4>댓글</h4>
+                        <form id="comment-form" class="mb-4">
+                            <div class="mb-3">
+                                <textarea class="form-control" rows="3" placeholder="댓글을 입력하세요..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">댓글 작성</button>
+                        </form>
+                        <div id="comments-list">
+                            <!-- 댓글이 여기에 동적으로 로드됩니다 -->
                         </div>
-                        <button type="submit" class="btn btn-primary">댓글 작성</button>
-                    </form>
-                    <div id="comments"></div>
+                    </div>
                 </div>
             </div>
         </div>
-    </template>
+    </div>
+
+    <!-- 게시글 수정 폼 -->
+    <div id="edit-post-form" style="display: none;">
+        <div class="container mt-4">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">게시글 수정</h2>
+                    <form>
+                        <div class="mb-3">
+                            <label for="edit-title" class="form-label">제목</label>
+                            <input type="text" class="form-control" id="edit-title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-content" class="form-label">내용</label>
+                            <textarea class="form-control" id="edit-content" rows="10" required></textarea>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" id="cancel-edit-btn">취소</button>
+                            <button type="submit" class="btn btn-primary">수정하기</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 로그인 모달 -->
     <div class="modal fade" id="loginModal" tabindex="-1">
@@ -176,20 +212,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
     
     <!-- Custom Scripts -->
-    <script src="/js/router.js"></script>
+    <script src="/js/auth.js"></script>
     <script src="/js/app.js"></script>
+    <script src="/js/blog.js"></script>
     <script>
-        // 현재 경로에 따라 필요한 스크립트 로드
-        const path = window.location.pathname;
-        if (path.startsWith('/blog')) {
-            const script = document.createElement('script');
-            script.src = '/js/blog.js';
-            document.body.appendChild(script);
-        } else if (path.startsWith('/projects')) {
-            const script = document.createElement('script');
-            script.src = '/js/projects.js';
-            document.body.appendChild(script);
-        }
+        // 앱 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            // 인증 상태 체크
+            checkAuthStatus();
+        });
     </script>
 </body>
 </html> 

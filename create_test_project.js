@@ -22,9 +22,9 @@ async function createTestProject() {
         
         // 테스트 프로젝트 생성
         const result = await db.run(`
-            INSERT INTO projects (title, description, author_id)
-            VALUES (?, ?, ?)
-        `, ['테스트 프로젝트', '테스트 프로젝트 설명입니다.', userId]);
+            INSERT INTO projects (title, description, leader_id, status, github_url)
+            VALUES (?, ?, ?, ?, ?)
+        `, ['테스트 프로젝트', '테스트 프로젝트 설명입니다.', userId, '진행중', 'https://github.com/test/project']);
         
         console.log('테스트 프로젝트가 생성되었습니다. ID:', result.lastID);
         
@@ -32,7 +32,13 @@ async function createTestProject() {
         const project = await db.get('SELECT * FROM projects WHERE id = ?', [result.lastID]);
         console.log('생성된 프로젝트 정보:', project);
         
-        db.close();
+        // 프로젝트 멤버로 추가
+        await db.run(`
+            INSERT INTO project_members (project_id, user_id, role)
+            VALUES (?, ?, ?)
+        `, [result.lastID, userId, '리더']);
+        
+        console.log('프로젝트 멤버가 추가되었습니다.');
     } catch (error) {
         console.error('Error:', error);
     }
