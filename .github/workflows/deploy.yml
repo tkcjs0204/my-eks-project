@@ -39,7 +39,7 @@ jobs:
 
     - name: Set up kubeconfig
       run: |
-        aws eks update-kubeconfig --region ap-northeast-2 --name <클러스터 이름>
+        aws eks update-kubeconfig --region ap-northeast-2 --name note4u-cluster
 
     - name: Deploy to EKS
       run: |
