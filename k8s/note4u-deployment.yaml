@@ -15,6 +15,7 @@ spec:
       containers:
       - name: note4u
         image: 580644016044.dkr.ecr.ap-northeast-2.amazonaws.com/note4u:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
         envFrom:
