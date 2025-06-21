@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: note4u-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: note4u
+  template:
+    metadata:
+      labels:
+        app: note4u
+    spec:
+      containers:
+      - name: note4u
+        image: 580644016044.dkr.ecr.ap-northeast-2.amazonaws.com/note4u:latest
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: note4u-secret # 이건 나중에 .env값 secret으로 만들면 설정할 수 있음
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: note4u-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: note4u
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000

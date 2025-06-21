@@ -1955,7 +1955,8 @@ async function projectsPage() {
                             ${project.technologies && Array.isArray(project.technologies) ? 
                                 project.technologies.map(tech => 
                                     `<span class="badge bg-secondary me-1">${tech}</span>`
-                                ).join('') : ''}
+                                ).join('') : 
+                                '<span class="badge bg-secondary me-1">기술 스택 없음</span>'}
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
                             <small class="text-muted">상태: ${project.status || '진행 중'}</small>
@@ -1992,6 +1993,7 @@ async function projectsPage() {
 // 프로젝트 상세 페이지
 async function projectDetailPage(params) {
     try {
+        console.log('Fetching project details for ID:', params.id);
         const response = await fetch(`/api/projects/${params.id}`, {
             headers: getAuthHeaders()
         });
@@ -2001,36 +2003,40 @@ async function projectDetailPage(params) {
         }
         
         const project = await response.json();
+        console.log('Project data:', project);
+        
         const currentUser = await getCurrentUser();
         const canEdit = currentUser && (currentUser.id === project.author_id || currentUser.role === 'admin');
         
         const mainContent = document.getElementById('main-content');
-    mainContent.innerHTML = `
+        mainContent.innerHTML = `
             <div class="container mt-4">
-            <div class="card">
-                <div class="card-body">
+                <div class="card">
+                    <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="card-title">${project.title}</h2>
-                        <div class="btn-group">
+                            <h2 class="card-title">${project.title || '제목 없음'}</h2>
+                            <div class="btn-group">
                                 <button class="btn btn-secondary" onclick="window.router.navigate('/projects')">목록으로</button>
                                 ${canEdit ? `
-                            <button class="btn btn-primary" onclick="editProject(${project.id})">수정</button>
-                            <button class="btn btn-danger" onclick="deleteProject(${project.id})">삭제</button>
+                                    <button class="btn btn-primary" onclick="editProject(${project.id})">수정</button>
+                                    <button class="btn btn-danger" onclick="deleteProject(${project.id})">삭제</button>
                                 ` : ''}
+                            </div>
                         </div>
+                        <p class="card-text">${project.description || '설명 없음'}</p>
+                        <div class="mb-3">
+                            ${project.technologies && Array.isArray(project.technologies) ? 
+                                project.technologies.map(tech => 
+                                    `<span class="badge bg-secondary me-1">${tech}</span>`
+                                ).join('') : 
+                                '<span class="badge bg-secondary me-1">기술 스택 없음</span>'}
                         </div>
-                        <p class="card-text">${project.description}</p>
-                <div class="mb-3">
-                            ${project.technologies.map(tech => 
-                                `<span class="badge bg-secondary me-1">${tech}</span>`
-                            ).join('')}
-                </div>
-                <div class="mb-3">
+                        <div class="mb-3">
                             <small class="text-muted">
-                                작성자: ${project.author_name} | 
-                                작성일: ${new Date(project.created_at).toLocaleString()}
+                                작성자: ${project.author_name || '익명'} | 
+                                작성일: ${project.created_at ? new Date(project.created_at).toLocaleString() : '날짜 정보 없음'}
                             </small>
-                </div>
+                        </div>
                         ${project.github_url ? `
                             <a href="${project.github_url}" target="_blank" class="btn btn-outline-dark me-2">
                                 <i class="fab fa-github me-2"></i>GitHub
@@ -2040,13 +2046,13 @@ async function projectDetailPage(params) {
                             <a href="${project.demo_url}" target="_blank" class="btn btn-outline-primary">
                                 <i class="fas fa-external-link-alt me-2"></i>데모
                             </a>
-                    ` : ''}
+                        ` : ''}
                     </div>
                 </div>
             </div>
         `;
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error in projectDetailPage:', error);
         showAlert(error.message, 'danger');
     }
 }
@@ -2064,7 +2070,7 @@ async function profilePage() {
             return;
         }
 
-        const mainContent = document.getElementById('main-content');
+    const mainContent = document.getElementById('main-content');
         if (!mainContent) {
             console.error('main-content element not found');
             return;
@@ -2082,11 +2088,11 @@ async function profilePage() {
 
         if (!profileResponse.ok) {
             console.error('Failed to fetch profile data:', profileResponse.status);
-            mainContent.innerHTML = `
+    mainContent.innerHTML = `
                 <div class="container mt-4">
                     <div class="alert alert-danger">
                         프로필 정보를 불러오는데 실패했습니다. 다시 시도해주세요.
-                    </div>
+                </div>
                 </div>
             `;
             return;
@@ -2290,10 +2296,10 @@ async function showEditProfileForm() {
                                         <label for="name" class="form-label">이름</label>
                                         <input type="text" class="form-control" id="name" name="name" value="${userData.name}" required>
                 </div>
-                                    <div class="mb-3">
+                <div class="mb-3">
                                         <label for="email" class="form-label">이메일</label>
                                         <input type="email" class="form-control" id="email" name="email" value="${userData.email}" required>
-                                    </div>
+                </div>
                                     <div class="d-flex justify-content-between">
                                         <button type="button" class="btn btn-secondary" onclick="profilePage()">취소</button>
                                         <button type="submit" class="btn btn-primary">저장</button>

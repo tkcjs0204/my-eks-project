@@ -4,9 +4,13 @@ const path = require('path');
 const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { initializeDatabase, db } = require('./database');
+const { initializeDatabase, User, Post, Project, Comment, Like } = require('./database');
 const { authenticateToken } = require('./middleware/authMiddleware');
-const Post = require('./models/post');
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const blogRoutes = require('./routes/blog');
+const projectRoutes = require('./routes/projects');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -97,17 +101,10 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // API 라우트 설정
-const authRoutes = require('./routes/auth');
-const blogRoutes = require('./routes/blog');
-const projectRoutes = require('./routes/projects');
-const userRoutes = require('./routes/users');
-const adminRoutes = require('./routes/admin');
-
-// API 라우트 설정
 app.use('/api/auth', authRoutes);
-app.use('/api/blog', blogRoutes);
-app.use('/api/projects', projectRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/posts', blogRoutes);
+app.use('/api/projects', projectRoutes);
 app.use('/api/admin', adminRoutes);
 
 // 블로그 게시글 삭제
@@ -121,7 +118,7 @@ app.delete('/api/blog/posts/:id', async (req, res) => {
         }
 
         // 게시글 찾기
-        const post = await db.get('SELECT * FROM posts WHERE id = ?', [postId]);
+        const post = await Post.findOne({ where: { id: postId } });
         if (!post) {
             return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
         }
@@ -132,7 +129,7 @@ app.delete('/api/blog/posts/:id', async (req, res) => {
         }
 
         // 게시글 삭제
-        await db.run('DELETE FROM posts WHERE id = ?', [postId]);
+        await Post.destroy({ where: { id: postId } });
         res.json({ message: '게시글이 삭제되었습니다.' });
     } catch (error) {
         console.error('Error:', error);
@@ -152,7 +149,7 @@ app.put('/api/blog/posts/:id', async (req, res) => {
         }
 
         // 게시글 찾기
-        const post = await db.get('SELECT * FROM posts WHERE id = ?', [postId]);
+        const post = await Post.findOne({ where: { id: postId } });
         if (!post) {
             return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
         }
@@ -163,12 +160,12 @@ app.put('/api/blog/posts/:id', async (req, res) => {
         }
 
         // 게시글 수정
-        await db.run(
-            'UPDATE posts SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-            [title, content, postId]
+        await Post.update(
+            { title: title, content: content, updated_at: new Date() },
+            { where: { id: postId } }
         );
 
-        const updatedPost = await db.get('SELECT * FROM posts WHERE id = ?', [postId]);
+        const updatedPost = await Post.findOne({ where: { id: postId } });
         res.json({ message: '게시글이 수정되었습니다.', post: updatedPost });
     } catch (error) {
         console.error('Error:', error);
