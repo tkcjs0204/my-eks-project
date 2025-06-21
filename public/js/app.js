@@ -140,7 +140,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
         console.error('Initialization error:', error);
     }
-}); 
+
+    window.fetchRecentPosts = fetchRecentPosts;
+    window.fetchRecentProjects = fetchRecentProjects;
+
+    // 초기 라우팅 처리
+    handleRoute();
+});
 
 // 로그인 페이지
 async function loginPage() {
