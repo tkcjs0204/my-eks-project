@@ -41,6 +41,10 @@ jobs:
       run: |
         aws eks update-kubeconfig --region ap-northeast-2 --name note4u-cluster
 
-    - name: Deploy to EKS
+    - name: Apply Kubernetes configurations
       run: |
-        kubectl apply -f k8s/ 
+        kubectl apply -f k8s/
+
+    - name: Restart Kubernetes deployment
+      run: |
+        kubectl rollout restart deployment/note4u-deployment 
