@@ -795,13 +795,12 @@ function getCurrentUserId() {
     return user ? user.id : null;
 }
 
-// 메인 페이지
-async function home() {
-    const mainContent = document.getElementById('main-content');
+// 모달 표시 함수들
+function showHomePage() {
     mainContent.innerHTML = `
         <div class="container mt-4">
             <div class="jumbotron text-center mb-5">
-                <h1 class="display-4">Note4U에 오신 것을 환영합니다!</h1>
+                <h1 class="display-4">자동화 테스트</h1>
                 <p class="lead">당신의 아이디어를 공유하고 다른 사람들과 소통하세요.</p>
                 <hr class="my-4">
                 <div class="d-flex justify-content-center gap-3">
@@ -813,70 +812,38 @@ async function home() {
                     </a>
                 </div>
             </div>
-            
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                            <h2 class="h4 mb-0">최근 게시글</h2>
-                            <a href="/blog" class="btn btn-light btn-sm">더 보기</a>
-                        </div>
-                        <div class="card-body">
-                            <div id="recent-posts"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card shadow-sm">
-                        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                            <h2 class="h4 mb-0">최근 프로젝트</h2>
-                            <a href="/projects" class="btn btn-light btn-sm">더 보기</a>
-                        </div>
-                        <div class="card-body">
-                            <div id="recent-projects"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row mt-4">
-                <div class="col-md-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-pen-fancy fa-3x text-primary mb-3"></i>
-                            <h3 class="h5">블로그 작성</h3>
-                            <p class="text-muted">당신의 생각과 경험을 공유하세요.</p>
-                            <a href="/blog/new" class="btn btn-outline-primary">글쓰기</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-project-diagram fa-3x text-success mb-3"></i>
-                            <h3 class="h5">프로젝트 등록</h3>
-                            <p class="text-muted">새로운 프로젝트를 시작하세요.</p>
-                            <a href="/projects/new" class="btn btn-outline-success">프로젝트 등록</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body text-center">
-                            <i class="fas fa-users fa-3x text-info mb-3"></i>
-                            <h3 class="h5">커뮤니티</h3>
-                            <p class="text-muted">다른 사용자들과 소통하세요.</p>
-                            <a href="/blog" class="btn btn-outline-info">커뮤니티 참여</a>
-                        </div>
-                    </div>
+        </div>
+        <div id="recent-posts-container" class="container mt-5"></div>
+        <div id="recent-projects-container" class="container mt-5"></div>
+    `;
+    fetchRecentPosts();
+    fetchRecentProjects();
+}
+
+// 메인 페이지
+async function home() {
+    const mainContent = document.getElementById('main-content');
+    mainContent.innerHTML = `
+        <div class="container mt-4">
+            <div class="jumbotron text-center mb-5">
+                <h1 class="display-4">자동화 테스트</h1>
+                <p class="lead">당신의 아이디어를 공유하고 다른 사람들과 소통하세요.</p>
+                <hr class="my-4">
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="/blog" class="btn btn-primary btn-lg">
+                        <i class="fas fa-book"></i> 블로그 보기
+                    </a>
+                    <a href="/projects" class="btn btn-success btn-lg">
+                        <i class="fas fa-project-diagram"></i> 프로젝트 보기
+                    </a>
                 </div>
             </div>
         </div>
+        <div id="recent-posts-container" class="container mt-5"></div>
+        <div id="recent-projects-container" class="container mt-5"></div>
     `;
-    
-    // 최근 게시글과 프로젝트 로드
-    await loadRecentPosts();
-    await loadRecentProjects();
+    fetchRecentPosts();
+    fetchRecentProjects();
 }
 
 // 블로그 페이지
