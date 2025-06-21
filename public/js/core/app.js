@@ -485,7 +485,7 @@ async function home() {
     mainContent.innerHTML = `
         <div class="container mt-4">
             <div class="jumbotron text-center mb-5">
-                <h1 class="display-4">Note4U에 오신 것을 환영합니다!</h1>
+                <h1 class="display-4">자동화 테스트h1>
                 <p class="lead">당신의 아이디어를 공유하고 다른 사람들과 소통하세요.</p>
                 <hr class="my-4">
                 <div class="d-flex justify-content-center gap-3">
