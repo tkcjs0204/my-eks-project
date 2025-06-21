@@ -64,3 +64,7 @@ temp/
 # User uploads
 uploads/
 public/uploads/
+
+# Executables
+eksctl.exe
+eksctl.zip
