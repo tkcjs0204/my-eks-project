@@ -119,7 +119,10 @@ window.router = {
 };
 
 // 페이지 로드 시 초기화
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. 인증 상태를 먼저 확인합니다.
+    await auth.checkAuthStatus();
+
     const mainContent = document.getElementById('main-content');
     
     const routes = {
@@ -128,8 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
         '/blog/new': () => auth.isAuthenticated ? blog.showNewPostForm() : navigateTo('/'),
         '/blog/edit/:id': (params) => auth.isAuthenticated ? blog.showEditPostForm(params.id) : navigateTo('/'),
         '/blog/:id': (params) => blog.showPostDetail(params.id),
-        // '/projects': projects.showProjectsPage, // 나중에 프로젝트 기능 추가 시 활성화
-        // ... 기타 라우트
+        '/projects': projects.showProjectsPage, // 프로젝트 기능 복원
+        '/projects/new': () => auth.isAuthenticated ? projects.showNewProjectForm() : navigateTo('/'),
+        '/projects/:id': (params) => projects.showProjectDetail(params.id),
+        '/profile': () => auth.isAuthenticated ? auth.showProfile() : navigateTo('/'), // 프로필 기능 복원
     };
 
     function navigateTo(url) {
@@ -139,33 +144,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleRoute() {
         const path = window.location.pathname;
-        let match = routes[path];
+        let matchFn = routes[path];
+        let params = {};
 
-        if (!match) {
+        if (!matchFn) {
             for (const route in routes) {
                 const regex = new RegExp(`^${route.replace(/:\w+/g, '([^/]+)')}$`);
                 const potentialMatch = path.match(regex);
                 if (potentialMatch) {
-                    const params = {};
                     const keys = route.match(/:\w+/g) || [];
                     keys.forEach((key, index) => {
                         params[key.substring(1)] = potentialMatch[index + 1];
                     });
-                    match = () => routes[route](params);
+                    matchFn = () => routes[route](params);
                     break;
                 }
             }
         }
         
-        if (match) {
-            try {
-                await match();
-            } catch (error) {
-                console.error('Route handling error:', error);
-                mainContent.innerHTML = `<p class="text-danger">페이지를 로드하는 중 오류가 발생했습니다.</p>`;
-            }
-        } else {
-            mainContent.innerHTML = `<p>페이지를 찾을 수 없습니다.</p>`;
+        const pageFunction = matchFn || (() => mainContent.innerHTML = `<p>페이지를 찾을 수 없습니다.</p>`);
+        
+        try {
+            await pageFunction();
+        } catch (error) {
+            console.error('Route handling error:', error);
+            mainContent.innerHTML = `<p class="text-danger">페이지를 로드하는 중 오류가 발생했습니다.</p>`;
         }
     }
     
@@ -180,19 +183,26 @@ document.addEventListener('DOMContentLoaded', () => {
                         <a href="/blog" class="btn btn-primary btn-lg">
                             <i class="fas fa-book"></i> 블로그 보기
                         </a>
+                        <a href="/projects" class="btn btn-success btn-lg">
+                            <i class="fas fa-project-diagram"></i> 프로젝트 보기
+                        </a>
                     </div>
                 </div>
             </div>
             <div id="recent-posts-container" class="container mt-5"></div>
+            <div id="recent-projects-container" class="container mt-5"></div>
         `;
         fetchRecentPosts();
+        fetchRecentProjects();
     }
 
     async function fetchRecentPosts() {
         // ... (내용은 그대로)
     }
-
-    // 전역으로 함수를 노출시킬 필요가 없어졌으므로 관련 코드 삭제
+    
+    async function fetchRecentProjects() {
+        // ... (프로젝트 기능이 있었다면 여기에 코드가 있었을 것입니다. 지금은 비워둡니다.)
+    }
     
     window.addEventListener('popstate', handleRoute);
     handleRoute(); // 초기 페이지 로드 시 라우팅 처리
@@ -863,12 +873,17 @@ function showHomePage() {
                     <a href="/blog" class="btn btn-primary btn-lg">
                         <i class="fas fa-book"></i> 블로그 보기
                     </a>
+                    <a href="/projects" class="btn btn-success btn-lg">
+                        <i class="fas fa-project-diagram"></i> 프로젝트 보기
+                    </a>
                 </div>
             </div>
         </div>
         <div id="recent-posts-container" class="container mt-5"></div>
+        <div id="recent-projects-container" class="container mt-5"></div>
     `;
     fetchRecentPosts();
+    fetchRecentProjects();
 }
 
 // 메인 페이지
