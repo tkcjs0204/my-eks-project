@@ -22,8 +22,7 @@
     <link href="/css/style.css" rel="stylesheet">
 </head>
 <body>
-    <!-- 알림 컨테이너 -->
-    <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1050"></div>
+    <div id="alert-container" style="position: fixed; top: 20px; right: 20px; z-index: 1056;"></div>
 
     <!-- 네비게이션 바 -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -138,14 +137,14 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="loginForm" onsubmit="auth.handleLogin(event)">
-                        <div class="mb-3">
-                            <label class="form-label">이메일</label>
-                            <input type="email" class="form-control" name="email" required autocomplete="username">
+                    <form id="loginForm">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="loginEmail" placeholder="이메일" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">비밀번호</label>
-                            <input type="password" class="form-control" name="password" required autocomplete="current-password">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="loginPassword" placeholder="비밀번호" required>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">로그인</button>
                     </form>
@@ -163,22 +162,26 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="registerForm" onsubmit="auth.handleRegister(event)">
-                        <div class="mb-3">
-                            <label class="form-label">이름</label>
-                            <input type="text" class="form-control" name="name" required autocomplete="name">
+                    <form id="registerForm">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="registerName" placeholder="이름" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">이메일</label>
-                            <input type="email" class="form-control" name="email" required autocomplete="username">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-user-circle"></i></span>
+                            <input type="text" class="form-control" id="registerUsername" placeholder="사용자명" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">비밀번호</label>
-                            <input type="password" class="form-control" name="password" required autocomplete="new-password">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="registerEmail" placeholder="이메일" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">비밀번호 확인</label>
-                            <input type="password" class="form-control" name="confirm-password" required autocomplete="new-password">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="registerPassword" placeholder="비밀번호" required>
+                        </div>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-key"></i></span>
+                            <input type="password" class="form-control" id="registerConfirmPassword" placeholder="비밀번호 확인" required>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">회원가입</button>
                     </form>

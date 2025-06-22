@@ -62,6 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <!-- Recent posts can be loaded here by another function -->
         </div>
     `;
-        // Example: blog.loadRecentPosts();
+        blog.loadRecentPosts();
     }
 }); 

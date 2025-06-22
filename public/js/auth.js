@@ -50,12 +50,21 @@ const auth = {
         }
     },
 
-    handleLogin: async function(event) {
+    async handleLogin(event) {
         event.preventDefault();
-        const form = event.target;
-        const email = form.querySelector('[name="email"]').value;
-        const password = form.querySelector('[name="password"]').value;
-        
+        console.log("handleLogin called");
+
+        const emailInput = document.getElementById('loginEmail');
+        const passwordInput = document.getElementById('loginPassword');
+
+        if (!emailInput || !passwordInput) {
+            console.error('One or more login form elements not found');
+            return;
+        }
+
+        const email = emailInput.value;
+        const password = passwordInput.value;
+
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -64,56 +73,69 @@ const auth = {
                 },
                 body: JSON.stringify({ email, password })
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                this.isAuthenticated = true;
-                this.user = data.user;
-                this.updateAuthUI();
-                window.router.navigate('/');
-                showAlert('로그인되었습니다.', 'success');
+                this.updateUI(true, data.user);
+                showAlert('로그인 성공!', 'success');
+                const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                loginModal.hide();
             } else {
-                showAlert(data.message || '로그인에 실패했습니다.', 'danger');
+                showAlert(data.message, 'danger');
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Login error:', error);
             showAlert('로그인 중 오류가 발생했습니다.', 'danger');
         }
     },
 
-    handleRegister: async function(event) {
+    async handleRegister(event) {
         event.preventDefault();
-        const form = event.target;
+        console.log("handleRegister called");
+
+        const nameInput = document.getElementById('registerName');
+        const usernameInput = document.getElementById('registerUsername');
+        const emailInput = document.getElementById('registerEmail');
+        const passwordInput = document.getElementById('registerPassword');
+        const confirmPasswordInput = document.getElementById('registerConfirmPassword');
         
-        const name = form.querySelector('[name="name"]').value;
-        const email = form.querySelector('[name="email"]').value;
-        const password = form.querySelector('[name="password"]').value;
-        const confirmPassword = form.querySelector('[name="confirm-password"]').value;
-        
+        if (!nameInput || !usernameInput || !emailInput || !passwordInput || !confirmPasswordInput) {
+            console.error('One or more registration form elements not found');
+            return;
+        }
+
+        const name = nameInput.value;
+        const username = usernameInput.value;
+        const email = emailInput.value;
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+
         if (password !== confirmPassword) {
             showAlert('비밀번호가 일치하지 않습니다.', 'danger');
             return;
         }
-        
+
         try {
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ name, email, password })
+                body: JSON.stringify({ name, username, email, password })
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
-                showAlert('회원가입이 완료되었습니다. 로그인해주세요.', 'success');
-                window.router.navigate('/login');
+                localStorage.setItem('token', data.token);
+                this.updateUI(true, data.user);
+                showAlert('회원가입 성공!', 'success');
+                const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+                registerModal.hide();
             } else {
-                showAlert(data.message || '회원가입에 실패했습니다.', 'danger');
+                showAlert(data.message, 'danger');
             }
         } catch (error) {
             console.error('Error:', error);
