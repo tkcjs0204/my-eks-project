@@ -15,6 +15,12 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Origin-Agent-Cluster 헤더 설정 미들웨어
+app.use((req, res, next) => {
+    res.setHeader('Origin-Agent-Cluster', '?1');
+    next();
+});
+
 // 보안 미들웨어
 app.use(
     helmet({

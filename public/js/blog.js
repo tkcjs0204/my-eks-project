@@ -797,28 +797,12 @@ function getCurrentUserId() {
 
 // 메인 페이지
 async function home() {
-    const mainContent = document.getElementById('main-content');
-    mainContent.innerHTML = `
-        <div class="container mt-4">
-            <div class="jumbotron text-center mb-5">
-                <h1 class="display-4">자동화 테스트</h1>
-                <p class="lead">당신의 아이디어를 공유하고 다른 사람들과 소통하세요.</p>
-                <hr class="my-4">
-                <div class="d-flex justify-content-center gap-3">
-                    <a href="/blog" class="btn btn-primary btn-lg">
-                        <i class="fas fa-book"></i> 블로그 보기
-                    </a>
-                    <a href="/projects" class="btn btn-success btn-lg">
-                        <i class="fas fa-project-diagram"></i> 프로젝트 보기
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div id="recent-posts-container" class="container mt-5"></div>
-        <div id="recent-projects-container" class="container mt-5"></div>
-    `;
-    fetchRecentPosts();
-    fetchRecentProjects();
+    const mainContent = document.querySelector('#main-content');
+    mainContent.innerHTML = await fetch('/home.html').then(res => res.text());
+
+    // 최근 게시물 및 프로젝트 로드
+    loadRecentPosts();
+    loadRecentProjects();
 }
 
 // 블로그 페이지
