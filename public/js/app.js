@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainContent = document.getElementById('main-content');
 
     const router = {
-        routes: {
+    routes: {
             '/': showHomePage,
             '/blog': blog.showBlogPage,
             '/blog/new': blog.showNewPostForm,
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (match) {
                 match(params);
-            } else {
+        } else {
                 mainContent.innerHTML = '<h1>404 - Page Not Found</h1>';
             }
         }
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function showHomePage() {
-        mainContent.innerHTML = `
+    mainContent.innerHTML = `
             <div class="p-5 mb-4 bg-light rounded-3">
                 <div class="container-fluid py-5">
                     <h1 class="display-5 fw-bold">Note4U에 오신 것을 환영합니다</h1>
@@ -60,8 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div id="recent-posts-container">
                 <!-- Recent posts can be loaded here by another function -->
-            </div>
-        `;
+        </div>
+    `;
         // Example: blog.loadRecentPosts();
     }
 }); 
