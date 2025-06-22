@@ -5,7 +5,7 @@ const { authenticateToken } = require('../middleware/auth');
 const Post = require('../models/post');
 
 // 최근 게시글 조회 (가장 먼저 정의)
-router.get('/posts/recent', async (req, res) => {
+router.get('/recent', async (req, res) => {
     try {
         const posts = await db.all(`
             SELECT 
@@ -33,7 +33,7 @@ router.get('/posts/recent', async (req, res) => {
 });
 
 // 게시글 목록 조회
-router.get('/posts', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
     try {
         const posts = await db.all(`
             SELECT 
@@ -63,7 +63,7 @@ router.get('/posts', authenticateToken, async (req, res) => {
 });
 
 // 게시글 상세 조회
-router.get('/posts/:id', authenticateToken, async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const postId = req.params.id;
         const post = await db.get(`
@@ -96,7 +96,7 @@ router.get('/posts/:id', authenticateToken, async (req, res) => {
 });
 
 // 게시글 작성
-router.post('/posts', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
     try {
         const { title, content, tags } = req.body;
         
@@ -149,7 +149,7 @@ router.post('/posts', authenticateToken, async (req, res) => {
 });
 
 // 게시글 수정
-router.put('/posts/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
     try {
         const postId = req.params.id;
         const { title, content, tags } = req.body;
@@ -208,7 +208,7 @@ router.put('/posts/:id', authenticateToken, async (req, res) => {
 });
 
 // 게시글 삭제
-router.delete('/posts/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
     try {
         const postId = req.params.id;
         
@@ -259,7 +259,7 @@ router.delete('/posts/:id', authenticateToken, async (req, res) => {
 });
 
 // 게시글 좋아요/좋아요 취소
-router.post('/posts/:id/like', authenticateToken, async (req, res) => {
+router.post('/:id/like', authenticateToken, async (req, res) => {
     try {
         const postId = req.params.id;
         const userId = req.user.id;
@@ -312,7 +312,7 @@ router.post('/posts/:id/like', authenticateToken, async (req, res) => {
 });
 
 // 게시글 좋아요 상태 확인
-router.get('/posts/:id/like', authenticateToken, async (req, res) => {
+router.get('/:id/like', authenticateToken, async (req, res) => {
     try {
         const postId = req.params.id;
         const userId = req.user.id;
@@ -339,7 +339,7 @@ router.get('/posts/:id/like', authenticateToken, async (req, res) => {
 });
 
 // 댓글 목록 조회
-router.get('/posts/:postId/comments', async (req, res) => {
+router.get('/:postId/comments', async (req, res) => {
     try {
         const postId = req.params.postId;
         const userId = req.user ? req.user.id : null;
@@ -364,7 +364,7 @@ router.get('/posts/:postId/comments', async (req, res) => {
 });
 
 // 댓글 작성
-router.post('/posts/:id/comments', authenticateToken, async (req, res) => {
+router.post('/:postId/comments', authenticateToken, async (req, res) => {
     const { content } = req.body;
     
     if (!content) {
@@ -373,7 +373,7 @@ router.post('/posts/:id/comments', authenticateToken, async (req, res) => {
 
     try {
         // 게시글 존재 여부 확인
-        const post = await db.get('SELECT id FROM blog_posts WHERE id = ?', [req.params.id]);
+        const post = await db.get('SELECT id FROM blog_posts WHERE id = ?', [req.params.postId]);
         if (!post) {
             return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
         }
@@ -386,7 +386,7 @@ router.post('/posts/:id/comments', authenticateToken, async (req, res) => {
 
         const result = await db.run(
             'INSERT INTO comments (post_id, author_id, content, created_at) VALUES (?, ?, ?, ?)',
-            [req.params.id, user.id, content, new Date().toISOString()]
+            [req.params.postId, user.id, content, new Date().toISOString()]
         );
 
         // 새로 작성된 댓글 정보 조회
@@ -409,14 +409,14 @@ router.post('/posts/:id/comments', authenticateToken, async (req, res) => {
 });
 
 // 댓글 삭제
-router.delete('/posts/:postId/comments/:commentId', authenticateToken, async (req, res) => {
+router.delete('/comments/:commentId', authenticateToken, async (req, res) => {
     try {
-        const { postId, commentId } = req.params;
+        const { commentId } = req.params;
         const userId = req.user.id;
         const userRole = req.user.role;
 
         // 댓글 존재 여부 확인
-        const comment = await db.get('SELECT * FROM comments WHERE id = ? AND post_id = ?', [commentId, postId]);
+        const comment = await db.get('SELECT * FROM comments WHERE id = ?', [commentId]);
         if (!comment) {
             return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
         }
@@ -452,9 +452,9 @@ router.delete('/posts/:postId/comments/:commentId', authenticateToken, async (re
 });
 
 // 댓글 수정
-router.put('/posts/:postId/comments/:commentId', authenticateToken, async (req, res) => {
+router.put('/comments/:commentId', authenticateToken, async (req, res) => {
     try {
-        const { postId, commentId } = req.params;
+        const { commentId } = req.params;
         const { content } = req.body;
         const userId = req.user.id;
         const userRole = req.user.role;
@@ -464,7 +464,7 @@ router.put('/posts/:postId/comments/:commentId', authenticateToken, async (req, 
         }
 
         // 댓글 존재 여부 확인
-        const comment = await db.get('SELECT * FROM comments WHERE id = ? AND post_id = ?', [commentId, postId]);
+        const comment = await db.get('SELECT * FROM comments WHERE id = ?', [commentId]);
         if (!comment) {
             return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
         }
@@ -496,13 +496,13 @@ router.put('/posts/:postId/comments/:commentId', authenticateToken, async (req, 
 });
 
 // 댓글 좋아요 토글
-router.post('/posts/:postId/comments/:commentId/like', authenticateToken, async (req, res) => {
+router.post('/comments/:commentId/like', authenticateToken, async (req, res) => {
     try {
-        const { postId, commentId } = req.params;
+        const { commentId } = req.params;
         const userId = req.user.id;
 
         // 댓글 존재 여부 확인
-        const comment = await db.get('SELECT * FROM comments WHERE id = ? AND post_id = ?', [commentId, postId]);
+        const comment = await db.get('SELECT * FROM comments WHERE id = ?', [commentId]);
         if (!comment) {
             return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
         }
@@ -532,12 +532,12 @@ router.post('/posts/:postId/comments/:commentId/like', authenticateToken, async 
 });
 
 // 댓글 좋아요 수 조회
-router.get('/posts/:postId/comments/:commentId/likes', async (req, res) => {
+router.get('/comments/:commentId/likes', async (req, res) => {
     try {
-        const { postId, commentId } = req.params;
+        const { commentId } = req.params;
 
         // 댓글 존재 여부 확인
-        const comment = await db.get('SELECT * FROM comments WHERE id = ? AND post_id = ?', [commentId, postId]);
+        const comment = await db.get('SELECT * FROM comments WHERE id = ?', [commentId]);
         if (!comment) {
             return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
         }
@@ -553,6 +553,11 @@ router.get('/posts/:postId/comments/:commentId/likes', async (req, res) => {
         console.error('Error getting comment likes:', error);
         res.status(500).json({ message: '댓글 좋아요 수 조회에 실패했습니다.' });
     }
+});
+
+// 게시글 검색
+router.get('/search', async (req, res) => {
+    // ... (기존 로직 동일)
 });
 
 module.exports = router; 

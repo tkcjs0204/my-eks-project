@@ -178,7 +178,7 @@ const blog = {
 
     loadRecentPosts: async function() {
         try {
-            const response = await fetch('/api/posts');
+            const response = await fetch('/api/posts/recent');
             if (!response.ok) {
                 throw new Error('최신 게시글을 불러오는데 실패했습니다.');
             }
@@ -191,19 +191,16 @@ const blog = {
                 return;
             }
 
-            // Slice to get the most recent posts, e.g., latest 3
-            const recentPosts = posts.slice(0, 3);
-
             container.innerHTML = `
                 <h2 class="mt-5 mb-3">최신 글</h2>
                 <div class="row">
-                    ${recentPosts.map(post => `
+                    ${posts.map(post => `
                         <div class="col-md-4 mb-4">
                             <div class="card h-100">
                                 <div class="card-body d-flex flex-column">
                                     <h5 class="card-title">${post.title}</h5>
                                     <p class="card-text text-muted small">${new Date(post.created_at).toLocaleDateString()}</p>
-                                    <p class="card-text flex-grow-1">${post.content.substring(0, 100)}...</p>
+                                    <p class="card-text flex-grow-1">${(post.content || '').substring(0, 100)}...</p>
                                     <a href="#/blog/${post.id}" class="btn btn-primary mt-auto">더 읽기</a>
                                 </div>
                             </div>
