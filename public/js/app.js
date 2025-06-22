@@ -120,7 +120,7 @@ window.router = {
 
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. 인증 상태를 먼저 확인합니다.
+    // 1. 인증 모듈을 통해 상태를 먼저 확인합니다.
     await auth.checkAuthStatus();
 
     const mainContent = document.getElementById('main-content');
@@ -131,10 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         '/blog/new': () => auth.isAuthenticated ? blog.showNewPostForm() : navigateTo('/'),
         '/blog/edit/:id': (params) => auth.isAuthenticated ? blog.showEditPostForm(params.id) : navigateTo('/'),
         '/blog/:id': (params) => blog.showPostDetail(params.id),
-        '/projects': projects.showProjectsPage, // 프로젝트 기능 복원
-        '/projects/new': () => auth.isAuthenticated ? projects.showNewProjectForm() : navigateTo('/'),
-        '/projects/:id': (params) => projects.showProjectDetail(params.id),
-        '/profile': () => auth.isAuthenticated ? auth.showProfile() : navigateTo('/'), // 프로필 기능 복원
+        // '/projects': projects.showProjectsPage, // 나중에 프로젝트 기능 추가 시 활성화
     };
 
     function navigateTo(url) {
@@ -204,6 +201,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         // ... (프로젝트 기능이 있었다면 여기에 코드가 있었을 것입니다. 지금은 비워둡니다.)
     }
     
+    // 로그인, 회원가입 폼의 이벤트 리스너를 설정합니다.
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => auth.handleLogin(e));
+    }
+
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', (e) => auth.handleRegister(e));
+    }
+
     window.addEventListener('popstate', handleRoute);
     handleRoute(); // 초기 페이지 로드 시 라우팅 처리
 });
