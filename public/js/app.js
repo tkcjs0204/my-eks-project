@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mainContent.innerHTML = `
             <div class="p-5 mb-4 bg-light rounded-3">
                 <div class="container-fluid py-5">
-                    <h1 class="display-5 fw-bold">Note4U에 오신 것을 환영합니다</h1>
+                    <h1 class="display-5 fw-bold">자동화 테스트3</h1>
                     <p class="col-md-8 fs-4">아이디어를 공유하고, 협업하고, 멋진 프로젝트를 만들어보세요.</p>
                     <a href="#/blog" class="btn btn-primary btn-lg">블로그 탐색하기</a>
                 </div>
@@ -64,4 +64,38 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
         blog.loadRecentPosts();
     }
+
+    // 중앙 이벤트 리스너
+    document.body.addEventListener('click', (event) => {
+        // 새 글 작성 버튼
+        if (event.target.matches('#new-post-btn')) {
+            window.router.navigate('/blog/new');
+        }
+
+        // 취소 버튼
+        if (event.target.matches('#cancel-btn')) {
+            // 간단하게 뒤로 가기 처리
+            history.back();
+        }
+
+        // 삭제 버튼 (상세보기 페이지 내)
+        if (event.target.matches('#delete-post-btn')) {
+            const postId = event.target.dataset.postId;
+            if (postId) {
+                blog.handleDeletePost(postId);
+            }
+        }
+    });
+
+    document.body.addEventListener('submit', (event) => {
+        // 새 글 작성 폼 제출
+        if (event.target.matches('#new-post-form')) {
+            blog.handleNewPostSubmit(event);
+        }
+
+        // 글 수정 폼 제출
+        if (event.target.matches('#edit-post-form')) {
+            blog.handleEditPostSubmit(event);
+        }
+    });
 }); 

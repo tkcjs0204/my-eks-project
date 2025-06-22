@@ -1,11 +1,27 @@
 const blog = {
-    showBlogPage: async function() {
+    // 페이지 전환을 위한 헬퍼 함수
+    _showView(viewId) {
+        document.getElementById('main-content').style.display = 'none';
+        document.getElementById('form-container').style.display = 'none';
+        document.getElementById('blog-post-detail').style.display = 'none';
+        
+        const view = document.getElementById(viewId);
+        if(view) {
+            view.style.display = 'block';
+        } else {
+            document.getElementById('main-content').style.display = 'block'; // Fallback
+        }
+    },
+
+    async showBlogPage() {
+        this._showView('main-content');
         const mainContent = document.getElementById('main-content');
         mainContent.innerHTML = `
-            <div class="container mt-4">
-                <h1 class="mb-4">블로그</h1>
-                <div id="posts-container" class="row"></div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>블로그</h1>
+                <button id="new-post-btn" class="btn btn-primary">새 글 작성</button>
             </div>
+            <div id="posts-container" class="row"></div>
         `;
         try {
             const response = await fetch('/api/posts');
@@ -32,15 +48,56 @@ const blog = {
         }
     },
 
-    showNewPostForm: function() {
-        // ... 기존 showNewPostForm 함수 내용은 그대로 ...
+    showNewPostForm() {
+        this._showView('form-container');
+        document.getElementById('form-container').innerHTML = `
+            <h2>새 글 작성</h2>
+            <form id="new-post-form">
+                <div class="mb-3">
+                    <label for="post-title" class="form-label">제목</label>
+                    <input type="text" class="form-control" id="post-title" required>
+                </div>
+                <div class="mb-3">
+                    <label for="post-content" class="form-label">내용</label>
+                    <textarea class="form-control" id="post-content" rows="10" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">저장</button>
+                <button type="button" id="cancel-btn" class="btn btn-secondary">취소</button>
+            </form>
+        `;
     },
 
-    showEditPostForm: async function(postId) {
-        // ... 기존 showEditPostForm 함수 내용은 그대로 ...
+    async showEditPostForm(postId) {
+        this._showView('form-container');
+        try {
+            const response = await fetch(`/api/posts/${postId}`);
+            if (!response.ok) throw new Error('게시글 정보를 불러올 수 없습니다.');
+            const post = await response.json();
+
+            document.getElementById('form-container').innerHTML = `
+                <h2>게시글 수정</h2>
+                <form id="edit-post-form" data-post-id="${post.id}">
+                    <div class="mb-3">
+                        <label for="post-title" class="form-label">제목</label>
+                        <input type="text" class="form-control" id="post-title" value="${post.title}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="post-content" class="form-label">내용</label>
+                        <textarea class="form-control" id="post-content" rows="10" required>${post.content}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">수정</button>
+                    <button type="button" id="cancel-btn" class="btn btn-secondary">취소</button>
+                </form>
+            `;
+        } catch (error) {
+            console.error('Error showing edit form:', error);
+            alert('게시글 수정 폼을 불러오는 중 오류가 발생했습니다.');
+            window.router.navigate('/blog');
+        }
     },
 
-    showPostDetail: async function(postId) {
+    async showPostDetail(postId) {
+        this._showView('blog-post-detail');
         try {
             const response = await fetch(`/api/posts/${postId}`);
             const post = await response.json();
@@ -48,6 +105,74 @@ const blog = {
         } catch (error) {
             console.error('게시글 상세 정보 로딩 오류:', error);
             document.getElementById('main-content').innerHTML = '<p>게시글을 불러오는 데 실패했습니다.</p>';
+        }
+    },
+    
+    // --- 이벤트 핸들러 ---
+    async handleNewPostSubmit(event) {
+        event.preventDefault();
+        const title = document.getElementById('post-title').value;
+        const content = document.getElementById('post-content').value;
+
+        try {
+            const response = await fetch('/api/posts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ title, content })
+            });
+            if (!response.ok) throw new Error('게시글 작성에 실패했습니다.');
+            const newPost = await response.json();
+            alert('게시글이 성공적으로 작성되었습니다.');
+            window.router.navigate(`/blog/${newPost.id}`);
+        } catch (error) {
+            console.error('Error creating post:', error);
+            alert(error.message);
+        }
+    },
+
+    async handleEditPostSubmit(event) {
+        event.preventDefault();
+        const postId = event.target.dataset.postId;
+        const title = document.getElementById('post-title').value;
+        const content = document.getElementById('post-content').value;
+
+        try {
+            const response = await fetch(`/api/posts/${postId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ title, content })
+            });
+            if (!response.ok) throw new Error('게시글 수정에 실패했습니다.');
+            alert('게시글이 성공적으로 수정되었습니다.');
+            window.router.navigate(`/blog/${postId}`);
+        } catch (error) {
+            console.error('Error updating post:', error);
+            alert(error.message);
+        }
+    },
+
+    async handleDeletePost(postId) {
+        if (!confirm('정말로 이 게시글을 삭제하시겠습니까?')) return;
+
+        try {
+            const response = await fetch(`/api/posts/${postId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (!response.ok) throw new Error('게시글 삭제에 실패했습니다.');
+            alert('게시글이 삭제되었습니다.');
+            window.router.navigate('/blog');
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            alert(error.message);
         }
     },
 
@@ -94,6 +219,4 @@ const blog = {
             }
         }
     }
-
-    // home 함수 및 DOMContentLoaded, 라우터 관련 코드 모두 삭제됨
 }; 
