@@ -12,20 +12,29 @@ const auth = {
         }
 
         try {
-            const response = await fetch('/api/auth/me', {
+            const response = await fetch('/api/auth/status', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (!response.ok) throw new Error('인증 실패');
-            
-            const userData = await response.json();
-            this.isAuthenticated = true;
-            this.user = userData;
-            this.updateAuthUI();
-            return true;
+            if (response.ok) {
+                const data = await response.json();
+                this.isAuthenticated = data.isAuthenticated;
+                this.user = data.user;
+                this.updateAuthUI();
+                return true;
+            } else {
+                this.isAuthenticated = false;
+                this.user = null;
+                localStorage.removeItem('token');
+                this.updateAuthUI();
+                return false;
+            }
         } catch (error) {
-            console.error('Auth check error:', error);
-            this.logout(); // 에러 발생 시 로그아웃 처리
+            console.error('Auth status check failed:', error);
+            this.isAuthenticated = false;
+            this.user = null;
+            localStorage.removeItem('token');
+            this.updateAuthUI();
             return false;
         }
     },
@@ -52,18 +61,9 @@ const auth = {
 
     async handleLogin(event) {
         event.preventDefault();
-        console.log("handleLogin called");
-
-        const emailInput = document.getElementById('loginEmail');
-        const passwordInput = document.getElementById('loginPassword');
-
-        if (!emailInput || !passwordInput) {
-            console.error('One or more login form elements not found');
-            return;
-        }
-
-        const email = emailInput.value;
-        const password = passwordInput.value;
+        const form = event.target;
+        const email = form.elements.loginEmail.value;
+        const password = form.elements.loginPassword.value;
 
         try {
             const response = await fetch('/api/auth/login', {
@@ -78,7 +78,7 @@ const auth = {
 
             if (response.ok) {
                 localStorage.setItem('token', data.token);
-                this.updateUI(true, data.user);
+                await this.checkAuthStatus();
                 showAlert('로그인 성공!', 'success');
                 const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
                 loginModal.hide();
@@ -93,24 +93,12 @@ const auth = {
 
     async handleRegister(event) {
         event.preventDefault();
-        console.log("handleRegister called");
-
-        const nameInput = document.getElementById('registerName');
-        const usernameInput = document.getElementById('registerUsername');
-        const emailInput = document.getElementById('registerEmail');
-        const passwordInput = document.getElementById('registerPassword');
-        const confirmPasswordInput = document.getElementById('registerConfirmPassword');
-        
-        if (!nameInput || !usernameInput || !emailInput || !passwordInput || !confirmPasswordInput) {
-            console.error('One or more registration form elements not found');
-            return;
-        }
-
-        const name = nameInput.value;
-        const username = usernameInput.value;
-        const email = emailInput.value;
-        const password = passwordInput.value;
-        const confirmPassword = confirmPasswordInput.value;
+        const form = event.target;
+        const name = form.elements.registerName.value;
+        const username = form.elements.registerUsername.value;
+        const email = form.elements.registerEmail.value;
+        const password = form.elements.registerPassword.value;
+        const confirmPassword = form.elements.registerConfirmPassword.value;
 
         if (password !== confirmPassword) {
             showAlert('비밀번호가 일치하지 않습니다.', 'danger');
@@ -130,7 +118,7 @@ const auth = {
 
             if (response.ok) {
                 localStorage.setItem('token', data.token);
-                this.updateUI(true, data.user);
+                await this.checkAuthStatus();
                 showAlert('회원가입 성공!', 'success');
                 const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
                 registerModal.hide();
@@ -152,41 +140,42 @@ const auth = {
         showAlert('로그아웃되었습니다.', 'success');
         if (window.router) {
             window.router.navigate('/');
+        } else {
+            window.location.href = '/';
         }
+    },
+
+    getCurrentUser() {
+        return this.user;
+    },
+
+    updateUI(isAuthenticated, user) {
+        this.isAuthenticated = isAuthenticated;
+        this.user = user;
+        this.updateAuthUI();
+    },
+
+    addAuthHeader(headers = {}) {
+        const token = localStorage.getItem('token');
+        if (token) {
+            return {
+                ...headers,
+                'Authorization': `Bearer ${token}`
+            };
+        }
+        return headers;
     }
 };
 
 window.auth = auth;
 
-// 로그인/회원가입 폼 이벤트 리스너는 app.js에서 관리하도록 이관
-
-// API 요청 시 JWT 토큰 추가
-function addAuthHeader(headers = {}) {
-    const token = localStorage.getItem('token');
-    if (token) {
-        return {
-            ...headers,
-            'Authorization': `Bearer ${token}`
-        };
-    }
-    return headers;
-}
-
-// 로그인 모달 표시
-function showLoginForm() {
-    const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-    loginModal.show();
-}
-
-// 회원가입 모달 표시
-function showRegisterForm() {
-    const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
-    registerModal.show();
-}
-
-// 알림 표시
+// 알림 표시 (전역 함수로 유지, 여러 곳에서 사용될 수 있음)
 function showAlert(message, type = 'info') {
     const alertContainer = document.getElementById('alertContainer');
+    if (!alertContainer) {
+        console.error('Alert container not found!');
+        return;
+    }
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
     alertDiv.innerHTML = `
@@ -199,28 +188,4 @@ function showAlert(message, type = 'info') {
     setTimeout(() => {
         alertDiv.remove();
     }, 5000);
-}
-
-// 현재 로그인한 사용자 정보 가져오기
-function getCurrentUser() {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        return {
-            id: payload.id,
-            name: payload.name,
-            email: payload.email
-        };
-    } catch (error) {
-        console.error('Error parsing token:', error);
-        return null;
-    }
-}
-
-// 현재 로그인한 사용자 ID 가져오기
-function getCurrentUserId() {
-    const user = getCurrentUser();
-    return user ? user.id : null;
 } 
