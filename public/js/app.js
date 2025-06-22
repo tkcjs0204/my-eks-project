@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const router = {
     routes: {
             '/': showHomePage,
-            '/blog': blog.showBlogPage,
-            '/blog/new': blog.showNewPostForm,
+            '/blog': () => blog.showBlogPage(),
+            '/blog/new': () => blog.showNewPostForm(),
             '/blog/edit/:id': (params) => blog.showEditPostForm(params.id),
             '/blog/:id': (params) => blog.showPostDetail(params.id),
         },

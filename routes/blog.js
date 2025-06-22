@@ -13,9 +13,9 @@ router.get('/recent', async (req, res) => {
                 u.name as author_name,
                 COALESCE((SELECT COUNT(*) FROM post_likes WHERE post_id = p.id), 0) as like_count,
                 COALESCE((SELECT COUNT(*) FROM comments WHERE post_id = p.id), 0) as comment_count
-            FROM blog_posts p
-            LEFT JOIN users u ON p.author_id = u.id
-            ORDER BY p.created_at DESC
+            FROM Posts p
+            LEFT JOIN Users u ON p.UserId = u.id
+            ORDER BY p.createdAt DESC
             LIMIT 5
         `);
         
@@ -42,11 +42,11 @@ router.get('/', authenticateToken, async (req, res) => {
                 (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as like_count,
                 (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
                 GROUP_CONCAT(pt.tag_name) as tags
-            FROM blog_posts p
-            LEFT JOIN users u ON p.author_id = u.id
+            FROM Posts p
+            LEFT JOIN Users u ON p.UserId = u.id
             LEFT JOIN post_tags pt ON p.id = pt.post_id
             GROUP BY p.id
-            ORDER BY p.created_at DESC
+            ORDER BY p.createdAt DESC
         `);
         
         // 태그 문자열을 배열로 변환
@@ -74,8 +74,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
                 (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
                 EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = ?) as is_liked,
                 GROUP_CONCAT(pt.tag_name) as tags
-            FROM blog_posts p
-            LEFT JOIN users u ON p.author_id = u.id
+            FROM Posts p
+            LEFT JOIN Users u ON p.UserId = u.id
             LEFT JOIN post_tags pt ON p.id = pt.post_id
             WHERE p.id = ?
             GROUP BY p.id
@@ -106,8 +106,8 @@ router.post('/', authenticateToken, async (req, res) => {
 
         // 게시글 생성
         const result = await db.run(
-            'INSERT INTO blog_posts (title, content, author_id) VALUES (?, ?, ?)',
-            [title, content, req.user.id]
+            'INSERT INTO Posts (title, content, UserId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)',
+            [title, content, req.user.id, new Date(), new Date()]
         );
 
         const postId = result.lastID;
@@ -131,8 +131,8 @@ router.post('/', authenticateToken, async (req, res) => {
                 0 as comment_count,
                 0 as is_liked,
                 GROUP_CONCAT(pt.tag_name) as tags
-            FROM blog_posts p
-            LEFT JOIN users u ON p.author_id = u.id
+            FROM Posts p
+            LEFT JOIN Users u ON p.UserId = u.id
             LEFT JOIN post_tags pt ON p.id = pt.post_id
             WHERE p.id = ?
             GROUP BY p.id
@@ -157,20 +157,20 @@ router.put('/:id', authenticateToken, async (req, res) => {
         const userRole = req.user.role;
 
         // 게시글 존재 여부 확인
-        const post = await db.get('SELECT * FROM blog_posts WHERE id = ?', [postId]);
+        const post = await db.get('SELECT * FROM Posts WHERE id = ?', [postId]);
         if (!post) {
             return res.status(404).json({ message: '게시글이 존재하지 않습니다.' });
         }
 
         // 권한 체크: 관리자이거나 게시글 작성자인 경우에만 수정 가능
-        if (userRole !== 'admin' && post.author_id !== userId) {
+        if (userRole !== 'admin' && post.UserId !== userId) {
             return res.status(403).json({ message: '게시글을 수정할 권한이 없습니다.' });
         }
 
         // 게시글 수정
         await db.run(
-            'UPDATE blog_posts SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-            [title, content, postId]
+            'UPDATE Posts SET title = ?, content = ?, updatedAt = ? WHERE id = ?',
+            [title, content, new Date(), postId]
         );
 
         // 태그 업데이트
@@ -193,8 +193,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
                    (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as like_count,
                    (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comment_count,
                    GROUP_CONCAT(pt.tag_name) as tags
-            FROM blog_posts p
-            LEFT JOIN users u ON p.author_id = u.id
+            FROM Posts p
+            LEFT JOIN Users u ON p.UserId = u.id
             LEFT JOIN post_tags pt ON p.id = pt.post_id
             WHERE p.id = ?
             GROUP BY p.id
@@ -213,13 +213,13 @@ router.delete('/:id', authenticateToken, async (req, res) => {
         const postId = req.params.id;
         
         // 게시글 정보 가져오기
-        const post = await db.get('SELECT * FROM blog_posts WHERE id = ?', [postId]);
+        const post = await db.get('SELECT * FROM Posts WHERE id = ?', [postId]);
         if (!post) {
             return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
         }
         
         // 어드민이거나 게시글 작성자인 경우에만 삭제 가능
-        if (req.user.role !== 'admin' && req.user.id !== post.author_id) {
+        if (req.user.role !== 'admin' && req.user.id !== post.UserId) {
             return res.status(403).json({ message: '게시글을 삭제할 권한이 없습니다.' });
         }
 
@@ -240,7 +240,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
             await db.run('DELETE FROM comments WHERE post_id = ?', [postId]);
             
             // 게시글 삭제
-            await db.run('DELETE FROM blog_posts WHERE id = ?', [postId]);
+            await db.run('DELETE FROM Posts WHERE id = ?', [postId]);
             
             // 트랜잭션 커밋
             await db.run('COMMIT');
@@ -265,7 +265,7 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
         const userId = req.user.id;
         
         // 게시글 존재 여부 확인
-        const post = await db.get('SELECT * FROM blog_posts WHERE id = ?', [postId]);
+        const post = await db.get('SELECT * FROM Posts WHERE id = ?', [postId]);
         if (!post) {
             return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
         }
@@ -318,7 +318,7 @@ router.get('/:id/like', authenticateToken, async (req, res) => {
         const userId = req.user.id;
         
         // 게시글 존재 여부 확인
-        const post = await db.get('SELECT * FROM blog_posts WHERE id = ?', [postId]);
+        const post = await db.get('SELECT * FROM Posts WHERE id = ?', [postId]);
         if (!post) {
             return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
         }
@@ -351,7 +351,7 @@ router.get('/:postId/comments', async (req, res) => {
                 (SELECT COUNT(*) FROM comment_likes WHERE comment_id = c.id) as like_count,
                 ${userId ? `EXISTS(SELECT 1 FROM comment_likes WHERE comment_id = c.id AND user_id = ${userId}) as is_liked` : '0 as is_liked'}
             FROM comments c
-            LEFT JOIN users u ON c.author_id = u.id
+            LEFT JOIN Users u ON c.author_id = u.id
             WHERE c.post_id = ?
             ORDER BY c.created_at DESC
         `, [postId]);
@@ -373,13 +373,13 @@ router.post('/:postId/comments', authenticateToken, async (req, res) => {
 
     try {
         // 게시글 존재 여부 확인
-        const post = await db.get('SELECT id FROM blog_posts WHERE id = ?', [req.params.postId]);
+        const post = await db.get('SELECT id FROM Posts WHERE id = ?', [req.params.postId]);
         if (!post) {
             return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
         }
 
         // 사용자 정보 확인
-        const user = await db.get('SELECT id, name FROM users WHERE id = ?', [req.user.id]);
+        const user = await db.get('SELECT id, name FROM Users WHERE id = ?', [req.user.id]);
         if (!user) {
             return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
         }
@@ -393,7 +393,7 @@ router.post('/:postId/comments', authenticateToken, async (req, res) => {
         const comment = await db.get(`
             SELECT c.*, u.name as author_name, u.id as author_id
             FROM comments c
-            INNER JOIN users u ON c.author_id = u.id
+            INNER JOIN Users u ON c.author_id = u.id
             WHERE c.id = ?
         `, [result.lastID]);
 
@@ -484,7 +484,7 @@ router.put('/comments/:commentId', authenticateToken, async (req, res) => {
         const updatedComment = await db.get(`
             SELECT c.*, u.name as author_name
             FROM comments c
-            LEFT JOIN users u ON c.author_id = u.id
+            LEFT JOIN Users u ON c.author_id = u.id
             WHERE c.id = ?
         `, [commentId]);
 
