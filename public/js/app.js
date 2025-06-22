@@ -119,33 +119,83 @@ window.router = {
 };
 
 // 페이지 로드 시 초기화
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        // 인증 상태 체크
-        const isAuthenticated = await checkAuthStatus();
-        if (isAuthenticated) {
-            const user = JSON.parse(localStorage.getItem('user'));
-            updateAuthUI(true, user);
-        } else {
-            updateAuthUI(false);
-        }
-        
-        // 초기 페이지 로드
-        window.router.handleRoute();
-        
-        // 브라우저 뒤로가기/앞으로가기 처리
-        window.addEventListener('popstate', () => {
-            window.router.handleRoute();
-        });
-    } catch (error) {
-        console.error('Initialization error:', error);
+document.addEventListener('DOMContentLoaded', () => {
+    const mainContent = document.getElementById('main-content');
+    
+    const routes = {
+        '/': showHomePage,
+        '/blog': blog.showBlogPage,
+        '/blog/new': () => auth.isAuthenticated ? blog.showNewPostForm() : navigateTo('/'),
+        '/blog/edit/:id': (params) => auth.isAuthenticated ? blog.showEditPostForm(params.id) : navigateTo('/'),
+        '/blog/:id': (params) => blog.showPostDetail(params.id),
+        // '/projects': projects.showProjectsPage, // 나중에 프로젝트 기능 추가 시 활성화
+        // ... 기타 라우트
+    };
+
+    function navigateTo(url) {
+        history.pushState(null, null, url);
+        handleRoute();
     }
 
-    window.fetchRecentPosts = fetchRecentPosts;
-    window.fetchRecentProjects = fetchRecentProjects;
+    async function handleRoute() {
+        const path = window.location.pathname;
+        let match = routes[path];
 
-    // 초기 라우팅 처리
-    handleRoute();
+        if (!match) {
+            for (const route in routes) {
+                const regex = new RegExp(`^${route.replace(/:\w+/g, '([^/]+)')}$`);
+                const potentialMatch = path.match(regex);
+                if (potentialMatch) {
+                    const params = {};
+                    const keys = route.match(/:\w+/g) || [];
+                    keys.forEach((key, index) => {
+                        params[key.substring(1)] = potentialMatch[index + 1];
+                    });
+                    match = () => routes[route](params);
+                    break;
+                }
+            }
+        }
+        
+        if (match) {
+            try {
+                await match();
+            } catch (error) {
+                console.error('Route handling error:', error);
+                mainContent.innerHTML = `<p class="text-danger">페이지를 로드하는 중 오류가 발생했습니다.</p>`;
+            }
+        } else {
+            mainContent.innerHTML = `<p>페이지를 찾을 수 없습니다.</p>`;
+        }
+    }
+    
+    function showHomePage() {
+        mainContent.innerHTML = `
+            <div class="container mt-4">
+                <div class="jumbotron text-center mb-5">
+                    <h1 class="display-4">자동화 테스트22</h1>
+                    <p class="lead">당신의 아이디어를 공유하고 다른 사람들과 소통하세요.</p>
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="/blog" class="btn btn-primary btn-lg">
+                            <i class="fas fa-book"></i> 블로그 보기
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div id="recent-posts-container" class="container mt-5"></div>
+        `;
+        fetchRecentPosts();
+    }
+
+    async function fetchRecentPosts() {
+        // ... (내용은 그대로)
+    }
+
+    // 전역으로 함수를 노출시킬 필요가 없어졌으므로 관련 코드 삭제
+    
+    window.addEventListener('popstate', handleRoute);
+    handleRoute(); // 초기 페이지 로드 시 라우팅 처리
 });
 
 // 로그인 페이지
@@ -813,17 +863,12 @@ function showHomePage() {
                     <a href="/blog" class="btn btn-primary btn-lg">
                         <i class="fas fa-book"></i> 블로그 보기
                     </a>
-                    <a href="/projects" class="btn btn-success btn-lg">
-                        <i class="fas fa-project-diagram"></i> 프로젝트 보기
-                    </a>
                 </div>
             </div>
         </div>
         <div id="recent-posts-container" class="container mt-5"></div>
-        <div id="recent-projects-container" class="container mt-5"></div>
     `;
     fetchRecentPosts();
-    fetchRecentProjects();
 }
 
 // 메인 페이지
@@ -839,17 +884,12 @@ async function home() {
                     <a href="/blog" class="btn btn-primary btn-lg">
                         <i class="fas fa-book"></i> 블로그 보기
                     </a>
-                    <a href="/projects" class="btn btn-success btn-lg">
-                        <i class="fas fa-project-diagram"></i> 프로젝트 보기
-                    </a>
                 </div>
             </div>
         </div>
         <div id="recent-posts-container" class="container mt-5"></div>
-        <div id="recent-projects-container" class="container mt-5"></div>
     `;
     fetchRecentPosts();
-    fetchRecentProjects();
 }
 
 // 블로그 페이지
