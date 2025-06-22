@@ -127,22 +127,18 @@ router.post('/register', async (req, res) => {
             'INSERT INTO users (username, name, email, password) VALUES (?, ?, ?, ?)',
             [username, name, email, hashedPassword]
         );
-        
-        const user = {
-            id: result.lastID,
-            username,
-            name,
-            email
-        };
+
+        // 생성된 사용자의 전체 정보 다시 조회 (비밀번호 제외)
+        const newUser = await db.get('SELECT id, username, name, email, role FROM users WHERE id = ?', result.lastID);
         
         // JWT 토큰 생성
         const token = jwt.sign(
-            { id: user.id, email: user.email },
+            { id: newUser.id, email: newUser.email },
             process.env.JWT_SECRET || 'your-secret-key',
             { expiresIn: '24h' }
         );
         
-        res.json({ token, user });
+        res.status(201).json({ token, user: newUser });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ message: '서버 오류가 발생했습니다.' });

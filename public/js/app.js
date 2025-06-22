@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mainContent.innerHTML = `
             <div class="p-5 mb-4 bg-light rounded-3">
                 <div class="container-fluid py-5">
-                    <h1 class="display-5 fw-bold">이희찬 버스탐</h1>
+                    <h1 class="display-5 fw-bold">자동화 테스트</h1>
                     <p class="col-md-8 fs-4">아이디어를 공유하고, 협업하고, 멋진 프로젝트를 만들어보세요.</p>
                     <a href="#/blog" class="btn btn-primary btn-lg">블로그 탐색하기</a>
                 </div>
