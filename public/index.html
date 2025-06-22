@@ -37,12 +37,12 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/blog">
+                        <a class="nav-link" href="#/blog">
                             <i class="fas fa-blog me-1"></i>블로그
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/projects">
+                        <a class="nav-link" href="#/projects">
                             <i class="fas fa-project-diagram me-1"></i>프로젝트
                         </a>
                     </li>
@@ -138,10 +138,10 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="loginForm">
+                    <form id="loginForm" onsubmit="auth.handleLogin(event)">
                         <div class="mb-3">
                             <label class="form-label">이메일</label>
-                            <input type="email" class="form-control" name="email" required>
+                            <input type="email" class="form-control" name="email" required autocomplete="username">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">비밀번호</label>
@@ -163,14 +163,14 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="registerForm">
+                    <form id="registerForm" onsubmit="auth.handleRegister(event)">
                         <div class="mb-3">
                             <label class="form-label">이름</label>
-                            <input type="text" class="form-control" name="name" required>
+                            <input type="text" class="form-control" name="name" required autocomplete="name">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">이메일</label>
-                            <input type="email" class="form-control" name="email" required>
+                            <input type="email" class="form-control" name="email" required autocomplete="username">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">비밀번호</label>
@@ -178,7 +178,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">비밀번호 확인</label>
-                            <input type="password" class="form-control" name="confirmPassword" required autocomplete="new-password">
+                            <input type="password" class="form-control" name="confirm-password" required autocomplete="new-password">
                         </div>
                         <button type="submit" class="btn btn-primary w-100">회원가입</button>
                     </form>

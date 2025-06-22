@@ -52,9 +52,9 @@ const auth = {
 
     handleLogin: async function(event) {
         event.preventDefault();
-        
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
+        const form = event.target;
+        const email = form.querySelector('[name="email"]').value;
+        const password = form.querySelector('[name="password"]').value;
         
         try {
             const response = await fetch('/api/auth/login', {
@@ -86,11 +86,12 @@ const auth = {
 
     handleRegister: async function(event) {
         event.preventDefault();
+        const form = event.target;
         
-        const name = document.getElementById('name').value;
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
+        const name = form.querySelector('[name="name"]').value;
+        const email = form.querySelector('[name="email"]').value;
+        const password = form.querySelector('[name="password"]').value;
+        const confirmPassword = form.querySelector('[name="confirm-password"]').value;
         
         if (password !== confirmPassword) {
             showAlert('비밀번호가 일치하지 않습니다.', 'danger');
@@ -127,9 +128,13 @@ const auth = {
         this.user = null;
         this.updateAuthUI();
         showAlert('로그아웃되었습니다.', 'success');
-        router.navigate('/');
+        if (window.router) {
+            window.router.navigate('/');
+        }
     }
 };
+
+window.auth = auth;
 
 // 로그인/회원가입 폼 이벤트 리스너는 app.js에서 관리하도록 이관
 
