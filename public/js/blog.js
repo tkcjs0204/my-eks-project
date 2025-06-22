@@ -1,12 +1,35 @@
 const blog = {
     showBlogPage: async function() {
-        document.getElementById('main-content').innerHTML = `
+        const mainContent = document.getElementById('main-content');
+        mainContent.innerHTML = `
             <div class="container mt-4">
                 <h1 class="mb-4">블로그</h1>
                 <div id="posts-container" class="row"></div>
             </div>
         `;
-        // ... 기존 showBlogPage 함수 내용은 그대로 ...
+        try {
+            const response = await fetch('/api/posts');
+            const posts = await response.json();
+            const container = document.getElementById('posts-container');
+            if (posts.length === 0) {
+                container.innerHTML = '<p>게시글이 없습니다.</p>';
+            } else {
+                container.innerHTML = posts.map(post => `
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">${post.title}</h5>
+                                <p class="card-text">${post.content.substring(0, 100)}...</p>
+                                <a href="#/blog/${post.id}" class="btn btn-primary">더 보기</a>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (error) {
+            console.error('블로그 게시글 로딩 오류:', error);
+            document.getElementById('posts-container').innerHTML = '<p>게시글을 불러오는 데 실패했습니다.</p>';
+        }
     },
 
     showNewPostForm: function() {
@@ -18,12 +41,19 @@ const blog = {
     },
 
     showPostDetail: async function(postId) {
-        // ... 기존 showPostDetail 함수 내용은 그대로 ...
+        try {
+            const response = await fetch(`/api/posts/${postId}`);
+            const post = await response.json();
+            // ... 기존 showPostDetail 함수 내용은 그대로 ...
+        } catch (error) {
+            console.error('게시글 상세 정보 로딩 오류:', error);
+            document.getElementById('main-content').innerHTML = '<p>게시글을 불러오는 데 실패했습니다.</p>';
+        }
     },
 
     loadRecentPosts: async function() {
         try {
-            const response = await fetch('/api/blog');
+            const response = await fetch('/api/posts');
             if (!response.ok) {
                 throw new Error('최신 게시글을 불러오는데 실패했습니다.');
             }

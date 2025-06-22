@@ -140,11 +140,11 @@
                     <form id="loginForm">
                         <div class="input-group mb-3">
                             <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                            <input type="email" class="form-control" id="loginEmail" placeholder="이메일" required>
+                            <input type="email" class="form-control" id="loginEmail" placeholder="이메일" required autocomplete="username">
                         </div>
                         <div class="input-group mb-3">
                             <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                            <input type="password" class="form-control" id="loginPassword" placeholder="비밀번호" required>
+                            <input type="password" class="form-control" id="loginPassword" placeholder="비밀번호" required autocomplete="current-password">
                         </div>
                         <button type="submit" class="btn btn-primary w-100">로그인</button>
                     </form>
@@ -173,15 +173,15 @@
                         </div>
                         <div class="input-group mb-3">
                             <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                            <input type="email" class="form-control" id="registerEmail" placeholder="이메일" required>
+                            <input type="email" class="form-control" id="registerEmail" placeholder="이메일" required autocomplete="email">
                         </div>
                         <div class="input-group mb-3">
                             <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                            <input type="password" class="form-control" id="registerPassword" placeholder="비밀번호" required>
+                            <input type="password" class="form-control" id="registerPassword" placeholder="비밀번호" required autocomplete="new-password">
                         </div>
                         <div class="input-group mb-3">
                             <span class="input-group-text"><i class="fas fa-key"></i></span>
-                            <input type="password" class="form-control" id="registerConfirmPassword" placeholder="비밀번호 확인" required>
+                            <input type="password" class="form-control" id="registerConfirmPassword" placeholder="비밀번호 확인" required autocomplete="new-password">
                         </div>
                         <button type="submit" class="btn btn-primary w-100">회원가입</button>
                     </form>
